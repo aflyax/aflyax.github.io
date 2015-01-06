@@ -1,6 +1,6 @@
 ---
 layout: post
-title: replace( ) for DataFrame
+title: replace(...) for DataFrame
 ---
 
 <div dir="ltr" style="text-align: left;" trbidi="on">
