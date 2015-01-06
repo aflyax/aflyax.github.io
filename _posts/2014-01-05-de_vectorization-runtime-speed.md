@@ -59,6 +59,7 @@ Finally, check each function's time:
 {% gist 6b8fd8ebd67cb7b577c2 %}
 
 Results:
+<pre style="background-color: #fafafa; border-radius: 0px; border: 0px; font-size: 14px; line-height: 17.0000591278076px; padding: 0px; vertical-align: baseline; white-space: pre-wrap; word-break: break-all; word-wrap: break-word;">
 <b style="background-color: transparent; font-family: 'Courier New', Courier, monospace; line-height: 17.0000591278076px;">devect(): </b>
 elapsed time: 5.863229397 seconds. 1918832240 bytes allocated, 30.58% gc time</pre>
 <pre style="background-color: #fafafa; border-radius: 0px; border: 0px; font-size: 14px; line-height: 17.0000591278076px; padding: 0px; vertical-align: baseline; white-space: pre-wrap; word-break: break-all; word-wrap: break-word;">
