@@ -59,12 +59,15 @@ Finally, check each function's time:
 {% gist 6b8fd8ebd67cb7b577c2 %}
 
 Results:
-<pre style="background-color: #fafafa; border-radius: 0px; border: 0px; font-size: 14px; line-height: 17.0000591278076px; padding: 0px; vertical-align: baseline; white-space: pre-wrap; word-break: break-all; word-wrap: break-word;">
-<b style="background-color: transparent; font-family: 'Courier New', Courier, monospace; line-height: 17.0000591278076px;">devect(): </b>
-elapsed time: 5.863229397 seconds. 1918832240 bytes allocated, 30.58% gc time</pre><pre style="background-color: #fafafa; border-radius: 0px; border: 0px; font-size: 14px; line-height: 17.0000591278076px; padding: 0px; vertical-align: baseline; white-space: pre-wrap; word-break: break-all; word-wrap: break-word;"><b style="background-color: transparent; font-family: 'Courier New', Courier, monospace; line-height: 17.0000591278076px;">vect(): </b>
+
+<code>**devect():**
+elapsed time: 5.863229397 seconds. 1918832240 bytes allocated, 30.58% gc time
+
+**vect():**
 elapsed time: 0.079824481 seconds. 45366656 bytes allocated, 55.56% gc time
-<b style="font-family: 'Courier New', Courier, monospace; font-size: 14px; line-height: 17.0000591278076px; white-space: pre-wrap;">df_vect():</b>
-<span style="font-size: 14px; line-height: 17.0000591278076px; white-space: pre-wrap;">elapsed time: </span><span style="font-size: 14px; line-height: 17.0000591278076px; white-space: pre-wrap;">0.087366592 seconds. 38463360 bytes allocated, 51.15% gc time</span></pre>
+
+**df_vect():**
+elapsed time: 0.087366592 seconds. 38463360 bytes allocated, 51.15% gc time</code>
 
 We can see that both of the vectorized functions perform faster than the devectorized function, with the function relying on `DataFrames` performing only a little slower than the one using arrays.
 
