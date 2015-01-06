@@ -60,6 +60,7 @@ Finally, check each function's time:
 
 
 Results:
+
 <code>**devect():**
 elapsed time: 5.863229397 seconds. 1918832240 bytes allocated, 30.58% gc time
 
