@@ -22,6 +22,5 @@ Output:<code>
 2  26052  1.441871   0.805124       bad</code>
 
 Julia's equivalent (I don't know yet if this function is already implemented):
-<br />
 <script src="https://gist.github.com/aflyax/23dfcfcedc53e44026f0.js"></script><br />
 The output is the same as above. (Note: apparently, in <code>0.4</code> release, the dictionary syntax will change.)</div>
