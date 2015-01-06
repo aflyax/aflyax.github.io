@@ -3,7 +3,7 @@ layout: page
 title: About
 ---
 
-![placeholder](http://placehold.it/800x400 "Large example image")
+![placeholder](http://imgs.xkcd.com/comics/computer_problems.png "Last ten years of my life")
 
 Last year, I received a Ph.D. in Neuroscince after years of studying electrophysiological properties of cortical neurons. After my graduation, I started working as a post-doc, first in the same lab and then in another university where I used optogenetics and cellular electrophysiology to study cortical circuits.
 
