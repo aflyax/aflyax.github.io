@@ -3,28 +3,12 @@ layout: page
 title: About
 ---
 
-<p class="message">
-  Hey there! This page is included as an example. Feel free to customize it for your own use upon downloading. Carry on!
-</p>
+![placeholder](http://placehold.it/800x400 "Large example image")
 
-In the novel, *The Strange Case of Dr. Jeykll and Mr. Hyde*, Mr. Poole is Dr. Jekyll's virtuous and loyal butler. Similarly, Poole is an upstanding and effective butler that helps you build Jekyll themes. It's made by [@mdo](https://twitter.com/mdo).
+Last year, I received a Ph.D. in Neuroscince after years of studying electrophysiological properties of cortical neurons. After my graduation, I started working as a post-doc, first in the same lab and then in another university where I used optogenetics and cellular electrophysiology to study cortical circuits.
 
-There are currently two themes built on Poole:
+Before graduate school, I was a Computer Science and Neuroscience double-major as an undergraduate and used C, C++, and Java in my coursework. Throughout the years of my graduate and post-graduate work, I've been using Matlab for data analysis. In my lab, we mostly analyzed electrophysiological events, such as action potentials and synaptic potentials and currents. The code I wrote in Matlab used Calculus and statistics to detect the events and analyze their properties (intervent interval/frequency, decay and onset rate, amplitude, etc.). I then did some population statistics (e.g., FI curves on action potentials, ANOVA testing between experimental groups, etc.).
 
-* [Hyde](http://hyde.getpoole.com)
-* [Lanyon](http://lanyon.getpoole.com)
+Recently, I decided to switch tracks from academic Neuroscience and move into business/industry-oriented environment where I would apply my analytical skills to solve "real-life" problems. I started learning Python (and a little R) and, recently, Julia, which seems to show a lot of promise for the future of data science. I am interested in learning how to do analytics and machine learning in these languages.
 
-Learn more and contribute on [GitHub](https://github.com/poole).
-
-## Setup
-
-Some fun facts about the setup of this project include:
-
-* Built for [Jekyll](http://jekyllrb.com)
-* Developed on GitHub and hosted for free on [GitHub Pages](https://pages.github.com)
-* Coded with [Sublime Text 2](http://sublimetext.com), an amazing code editor
-* Designed and developed while listening to music like [Blood Bros Trilogy](https://soundcloud.com/maddecent/sets/blood-bros-series)
-
-Have questions or suggestions? Feel free to [open an issue on GitHub](https://github.com/poole/issues/new) or [ask me on Twitter](https://twitter.com/mdo).
-
-Thanks for reading!
+In this blog, I will attempt to (sparsely) report on my learning process by blogging about some interesting ideas I encounter.
