@@ -42,10 +42,6 @@ In fact, in [The Relationship between Vectorized and Devectorized Code](http://w
 
 I was curious to see if this still happens in the current stable release (`0.3.4` at the moment). I wrote three similar functions, each generating a set of random points <code>(x,y)</code> and calculating the distance from each of those points to another random point <code>(a,b)</code>.
 
-
-<!--more-->
-
-
 Devectorized code:
 
 {% gist 348e753db1e0c954f4d0 %}
