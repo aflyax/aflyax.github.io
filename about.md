@@ -5,7 +5,7 @@ title: About
 
 ![placeholder](http://imgs.xkcd.com/comics/computer_problems.png "Last ten years of my life")
 
-In 2013, I received a Ph.D. in Neuroscince after years of studying electro&#173physiological properties of cortical neurons. After my graduation, I started working as a post-doc, first in the same lab and then in another university where I used optogenetics and cellular electrophysiology to study cortical circuits.
+In 2013, I received a Ph.D. in Neuroscince after years of studying electro&shy;physiological properties of cortical neurons. After my graduation, I started working as a post-doc, first in the same lab and then in another university where I used optogenetics and cellular electrophysiology to study cortical circuits.
 
 Before graduate school, I was a Computer Science and Neuroscience double-major as an undergraduate and used C, C++, and Java in my coursework. Throughout the years of my graduate and post-graduate work, I've been using Matlab for data analysis. In my lab, we mostly analyzed electrophysiological events, such as action potentials and synaptic potentials and currents. The code I wrote in Matlab used Calculus and statistics to detect the events and analyze their properties (intervent interval/frequency, decay and onset rate, amplitude, etc.). I then did some population statistics (e.g., FI curves on action potentials, ANOVA testing between experimental groups, etc.).
 
