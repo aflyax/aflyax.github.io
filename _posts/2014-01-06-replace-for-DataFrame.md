@@ -28,10 +28,14 @@ function fancyAlert(arg) {
 ```
 
 ```julia
-using Gadfly
-function fancyAlert(arg)
-  if(arg)
-    $.facebox({div:'#foo'})
-  end
+function replace!(df::DataFrame, replace_col::Symbol, replace_dict::Dict)
+    df[replace_col] = [ replace_dict[i] for i in df[replace_col]];
 end
+ 
+dating_df = readtable("/home/alex/Data/datasets/datingTestSet2.txt", separator='\t', header=false);
+names!(dating_df, [:icecream, :miles, :something, :opinion])
+println(head(dating_df, 3), "\n")
+ 
+replace!(dating_df, :opinion, {1 => "bad", 2 => "OK", 3 => "good"})
+head(dating_df, 3)
 ```
