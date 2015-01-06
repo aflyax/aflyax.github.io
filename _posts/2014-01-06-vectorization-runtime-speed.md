@@ -1,6 +1,6 @@
 ---
 layout: post
-title: What's Jekyll?
+title: Runtime speed for vectorized vs. devectorized code in Julia
 ---
 
 When dealing with arrays, we have two choices: apply a for loop or vectorize an array: apply the desired changes to all members of the array in a single statement. Vectorization famously speeds up R and Python code, which is why using for loops is discouraged for these languages.
