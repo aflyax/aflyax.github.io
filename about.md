@@ -1,6 +1,6 @@
 ---
 layout: page
-title: About me and this blog
+title: About
 ---
 
 ![placeholder](http://imgs.xkcd.com/comics/computer_problems.png "Last ten years of my life")
