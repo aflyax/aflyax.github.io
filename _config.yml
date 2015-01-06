@@ -7,20 +7,20 @@ permalink:        pretty
 relative_permalinks: true
 
 # Setup
-title:            Hyde
-tagline:          'A Jekyll theme'
-description:      'A brazen two-column <a href="http://jekyllrb.com" target="_blank">Jekyll</a> theme that pairs a prominent sidebar with uncomplicated content. Made by <a href="https://twitter.com/mdo" target="_blank">@mdo</a>.'
-url:              http://hyde.getpoole.com
-baseurl:          /
+title:            '{data dendrites}'
+tagline:          'learning data science in Julia and Python'
+description:      'learning data science using <a href="julialang.org" target="_blank">Julia</a> and <a href="http://nbviewer.ipython.org/github/gumption/Python_for_Data_Science/blob/master/Python_for_Data_Science_all.ipynb" target="_blank">Python</a>'
+url:              http://aflyax.github.io
+# baseurl:          /
 
 author:
-  name:           'Mark Otto'
-  url:            https://twitter.com/mdo
+  name:           'Alexander Flyax'
+  url:            https://twitter.com/aflyax
 
 paginate:         5
 
 # Custom vars
-version:          2.1.0
+version:          7.7.0
 
 github:
-  repo:           https://github.com/poole/hyde
+  repo:           https://github.com/aflyax
