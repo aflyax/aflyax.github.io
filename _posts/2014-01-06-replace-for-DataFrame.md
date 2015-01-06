@@ -10,7 +10,7 @@ In Python/Pandas we have:
 
 <script src="https://gist.github.com/aflyax/29fbce693d198040cd68.js"></script>
 Output:
-
+<br />
 <code>   miles     games  ice_cream  opinion</code><br />
 <code>0  40920  8.326976   0.953952        3</code><br />
 `1  14488  7.153469   1.673904        2
