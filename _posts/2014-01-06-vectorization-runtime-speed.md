@@ -13,21 +13,16 @@ From what I read, Julia is more optimized for running for loops:
 In fact, in [The Relationship between Vectorized and Devectorized Code](http://goo.gl/UJxkwq), John Myles White points out that vectorized code seems to run slower in Julia:
 
 <table>
-  <thead>
     <tr>
-      <th>Approach</th>
-      <th>Language</th>
-      <th>Average Time</th>
+      <td>Approach</td>
+      <td>Language</td>
+      <td>Average Time</td>
     </tr>
-  </thead>
-  <tfoot>
     <tr>
       <td>Vectorized</td>
       <td>R</td>
       <td>0.49</td>
     </tr>
-  </tfoot>
-  <tbody>
     <tr>
       <td>Devectorized</td>
       <td>R</td>
@@ -43,10 +38,9 @@ In fact, in [The Relationship between Vectorized and Devectorized Code](http://g
       <td>Julia</td>
       <td>0.0035</td>
     </tr>
-  </tbody>
 </table>
 
-I was curious to see if this still happens in the current stable release (<code>0.3.4</code> at the moment). I wrote three similar functions, each generating a set of random points <code>(x,y)</code> and calculating the distance from each of those points to another random point <code>(a,b)</code>.
+I was curious to see if this still happens in the current stable release (`0.3.4` at the moment). I wrote three similar functions, each generating a set of random points <code>(x,y)</code> and calculating the distance from each of those points to another random point <code>(a,b)</code>.
 
 Devectorized code:
 
@@ -54,8 +48,12 @@ Devectorized code:
 
 Vectorized code:
 
-{% gist 5555251 %}
+{% gist 79ce64c4117ea31f6221 %}
 
 Vectorized code with <code>DataFrames:</code>
 
-{% gist 5555251 %}
+{% gist 3fdfdffe84c748e8056d %}
+
+We can see that both of the vectorized functions perform faster than the devectorized function, with the function relying on `DataFrames` performing only a little slower than the one using arrays.
+
+**Update:** Using `@inbounds` and `@simd` doesn't seem to help much.
