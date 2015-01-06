@@ -3,7 +3,7 @@ layout: post
 title: About
 ---
 
-![placeholder](http://imgs.xkcd.com/comics/computer_problems.png)
+<!-- ![placeholder](http://imgs.xkcd.com/comics/computer_problems.png) -->
 
 Last year, I received a Ph.D. in Neuroscince after years of studying electrophysiological properties of cortical neurons. After my graduation, I started working as a post-doc, first in the same lab and then in another university where I used optogenetics and cellular electrophysiology to study cortical circuits.
 
