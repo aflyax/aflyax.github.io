@@ -200,8 +200,8 @@ pre code {
   background-color: transparent;
 }
 .gist .gist-file .gist-data {
-  font-size: 1.2rem !important;
-  line-height: 1.6;
+  font-size: 1.6rem !important;
+  line-height: 1.9;
 }
 .gist code {
   padding: 0;
