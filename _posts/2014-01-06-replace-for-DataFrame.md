@@ -3,15 +3,14 @@ layout: post
 title: replace( ) for DataFrame
 ---
 
-<div dir="ltr" style="text-align: left;" trbidi="on">
-<div dir="ltr" style="text-align: left;" trbidi="on">
 <img alt="The General Problem" src="http://imgs.xkcd.com/comics/the_general_problem.png" /><br />
 In Python/Pandas we have:
 
 <script src="https://gist.github.com/aflyax/29fbce693d198040cd68.js"></script>
 Output:
-<code>   miles     games  ice_cream  opinion</code>
-<code>0  40920  8.326976   0.953952        3</code>
+
+<code>   miles     games  ice_cream  opinion</code><br />
+<code>0  40920  8.326976   0.953952        3</code><br />
 `1  14488  7.153469   1.673904        2
 `2  26052  1.441871   0.805124        1`
 
