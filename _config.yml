@@ -1,5 +1,5 @@
 # Dependencies
-markdown:         GFM
+markdown:         redcarpet2
 # kramdown:
 #   input:          GFM
 highlighter:      pygments
