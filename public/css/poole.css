@@ -150,7 +150,7 @@ abbr[title] {
 /* Code */
 code,
 pre {
-  font-family: Menlo, Monaco, "Courier New", monospace;
+  font-family: "DejaVu Sans Mono", Monospace, Menlo, Monaco, "Courier New", monospace;
 }
 code {
   padding: 0em 0em;
@@ -169,7 +169,7 @@ pre {
   white-space: pre;
   white-space: pre-wrap;
   word-break: break-all;
-  word-wrap: break-word;
+  word-wrap: normal;
   background-color: #f9f9f9; /*transparent*/
 }
 pre code {
