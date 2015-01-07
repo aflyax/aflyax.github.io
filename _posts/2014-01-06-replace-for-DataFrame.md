@@ -18,28 +18,6 @@ Julia's equivalent (I don't know yet if this function is already implemented):
 <br />
 <script src="https://gist.github.com/aflyax/23dfcfcedc53e44026f0.js"></script>
 
-``` julia
-
-function replace!(df::DataFrame, replace_col::Symbol, replace_dict::Dict)
-    df[replace_col] = [ replace_dict[i] for i in df[replace_col]];
-end
- 
-dating_df = readtable("/home/alex/Data/datasets/datingTestSet2.txt", separator='\t', header=false);
-names!(dating_df, [:icecream, :miles, :something, :opinion])
-println(head(dating_df, 3), "\n")
- 
-replace!(dating_df, :opinion, {1 => "bad", 2 => "OK", 3 => "good"})
-head(dating_df, 3)
-
-```
-
-| Tables   |      Are      |  Cool |
-|----------|:-------------:|------:|
-| col 1 is |  left-aligned | $1600 |
-| col 2 is |    centered   |   $12 |
-| col 3 is | right-aligned |    $1 |
-
-
 The output is the same as above. (Note: apparently, in <code>0.4</code> release, the dictionary syntax will change.)
 
 Unfortunately, if you feed the function an incomplete list, e.g: 
