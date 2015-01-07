@@ -150,11 +150,11 @@ abbr[title] {
 /* Code */
 code,
 pre {
-  font-family: "DejaVu Sans Mono", Monospace, Menlo, Monaco, "Courier New", monospace;
+  font-family: "DejaVu Sans Mono", monospace, Menlo, Monaco, "Courier New", monospace;
 }
 code {
   padding: 0em 0em;
-  font-size: 85%;
+  font-size: 15px;
   color: #4D2226;
   background-color: transparent; /*#f9f9f9*/
   border-radius: 0px;
@@ -169,12 +169,12 @@ pre {
   white-space: pre;
   white-space: pre-wrap;
   word-break: break-all;
-  word-wrap: normal;
+  word-wrap: break-word;
   background-color: #f9f9f9; /*transparent*/
 }
 pre code {
   padding: 0;
-  font-size: 100%;
+  font-size: 85%;
   color: inherit;
   background-color: transparent;
 }
@@ -188,37 +188,8 @@ pre code {
   margin-bottom: 0;
 }
 
-/* Gist via GitHub Pages */
-/*.gist .gist-file {
-  font-family: Menlo, Monaco, "Courier New", monospace !important;
-}
-.gist .markdown-body {
-  padding: 15px;
-}
-.gist pre {
-  padding: 0;
-  background-color: transparent;
-}
-.gist .gist-file .gist-data {
-  font-size: 1.6rem !important;
-  line-height: 1.9;
-}
-.gist code {
-  padding: 0;
-  color: inherit;
-  background-color: transparent;
-  border-radius: 0;
-}*/
-
 /* Better styles for embedding GitHub Gists */
-/*.gist{font-size:25px;line-height:30px;margin-bottom:20px;width:100%}
-.gist pre{font-family:Menlo,Monaco,'Bitstream Vera Sans Mono','Courier New',monospace !important}
-.gist-meta{font-family:Helvetica,Arial,sans-serif;font-size:15px !important}
-.gist-meta a{color:#26a !important;text-decoration:none}
-.gist-meta a:hover{color:#0e4071 !important}
-*/
-/* Better styles for embedding GitHub Gists */
-.line-data { font-size:15px; font-family: "DejaVu Sans Mono", monospace, Inconsolata,"Liberation Mono",Courier; } .line-numbers { font-size:15px; background-color: #ECECEC; border-right: 1px solid #DDDDDD; color: #AAAAAA; padding: 0.0em; text-align: right; } .line-pre { font-size:15px;font-family: "DejaVu Sans Mono", monospace, Inconsolata,"Liberation Mono",Courier; }
+.line-data { font-size:15px; font-family: "DejaVu Sans Mono", Monospace, Inconsolata,"Liberation Mono",Courier; } .line-numbers { font-size:15px; background-color: #ECECEC; border-right: 1px solid #DDDDDD; color: #AAAAAA; padding: 0.0em; text-align: right; } .line-pre { font-size:15px;font-family: "DejaVu Sans Mono", Monospace, Inconsolata,"Liberation Mono",Courier; }
 
 
 /* Quotes */
