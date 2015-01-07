@@ -2,6 +2,7 @@
 layout: post
 title: Fixing WiFi connectivity on Linux
 ---
+(http://imgs.xkcd.com/comics/zealous_autoconfig.png "included in the latest Ubuntu release")
 
 After I switched to Linux (Mint 17.1), I've been experiencing horrible WiFi connectivity. At Starbucks or a local library, where the connection strength is (apparently) greater, I could connect to Internet easily, but at home my laptop could not connect at all, while my wife's Windows-running laptop (or my phone) had no problem connecting, streaming, etc.
 
