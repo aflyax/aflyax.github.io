@@ -2,7 +2,7 @@
 markdown:         redcarpet
 kramdown:
   input:          GFM
-highlighter:      pygments
+highlighter:      linguist
 
 # Permalinks
 permalink:        pretty
