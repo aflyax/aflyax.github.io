@@ -79,3 +79,16 @@ require 'redcarpet'
 markdown = Redcarpet.new("Hello World!")
 puts markdown.to_html
 ```
+
+``` python
+import seaborn as sns
+sns.set(context="poster", style="dark")
+```
+
+``` julia
+using DataFrames, Gadfly
+a = {1 => "ooppa", 2 => "hoppa"}
+for i in [1:20]
+    println(i)
+end
+```
