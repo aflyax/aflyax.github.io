@@ -109,5 +109,7 @@ end
 ```
 
 ``` bash
-lspci
+$ lspci
+
+$ echo options iwlwifi 11n_disable=1 | sudo tee /etc/modprobe.d/51-disable-6235-11n.conf
 ```
