@@ -20,12 +20,6 @@ Julia's equivalent (I don't know yet if this function is already implemented):
 The output is the same as above. (Note: apparently, in <code>0.4</code> release, the dictionary syntax will change.)</div>
 <br />
 Unfortunately, if you feed the function an incomplete list, e.g: <div dir="ltr" style="text-align: left;" trbidi="on">
-    
-    
-    
-
-
-<br />
 <div align="left" style="line-height: 0.22in; margin-bottom: 0in;">
 <span style="font-size: 11pt;"><span style="color: #333333;"><span style="font-family: Consolas, Liberation Mono, Menlo, Courier, monospace;">{</span></span><span style="color: #0086b3;"><span style="font-family: Consolas, Liberation Mono, Menlo, Courier, monospace;">1</span></span><span style="color: #333333;">
 </span><span style="color: #a71d5d;"><span style="font-family: Consolas, Liberation Mono, Menlo, Courier, monospace;">=&gt;</span></span><span style="color: #333333;">
