@@ -20,4 +20,4 @@ Some online search revealed a common problem with this controller that can be fi
 $ echo options iwlwifi 11n_disable=1 | sudo tee /etc/modprobe.d/51-disable-6235-11n.conf
 ```
 
-Which worked as a charm. Now I can connect everywhere, even with a weak WiFi signal.
+Which worked as a charm. Now I can connect even with a weak WiFi signal.
