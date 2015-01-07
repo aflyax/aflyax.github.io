@@ -7,14 +7,15 @@ After I switched to Linux (Mint 17.1), I've been experiencing horrible WiFi conn
 
 Finally I decided to search for my WiFi card:
 {% highlight %}
-lspci
-[...]
+lspci <br />
+[...] <br />
 02:00.0 Network controller: Intel Corporation Centrino Advanced-N 6235 (rev 24)
 {% end highlight %}
 
 
 Some online search revealed a common problem with this controller that can be fixed with:
-
-<code>$ **echo** options iwlwifi 11n_disable=1 | **sudo** tee /etc/modprobe.d/51-disable-6235-11n.conf</code>
+{% highlight}
+$ echo options iwlwifi 11n_disable=1 | sudo tee /etc/modprobe.d/51-disable-6235-11n.conf
+{% end highlight}
 
 Which worked as a charm.
