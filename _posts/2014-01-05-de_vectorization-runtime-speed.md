@@ -72,7 +72,7 @@ elapsed time: 0.087366592 seconds. 38463360 bytes allocated, 51.15% gc time</cod
 
 We can see that both of the vectorized functions perform faster than the devectorized function, with the function relying on `DataFrames` performing only a little slower than the one using arrays.
 
-**Update:** Using `@inbounds` and `@simd` doesn't seem to help much.
+**Update:** Using ```julia @inbounds``` and ``` julia @simd``` doesn't seem to help much.
 
 ``` ruby
 require 'redcarpet'
