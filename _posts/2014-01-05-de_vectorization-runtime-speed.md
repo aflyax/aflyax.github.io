@@ -84,29 +84,30 @@ puts markdown.to_html
 import seaborn as sns
 sns.set(context="poster", style="dark")
 ```
+<div class="message">
+    ``` julia
+    using DataFrames, Gadfly
+    a = {1 => "ooppa", 2 => "hoppa"}
+    for i in [1:20]
+        println(i)
+    end
 
-``` julia
-using DataFrames, Gadfly
-a = {1 => "ooppa", 2 => "hoppa"}
-for i in [1:20]
-    println(i)
-end
-
-using DataFrames
- 
-function df_distance()
-    x = rand(500)
-    y = rand(500)
-    a = rand()
-    b = rand()
-    
-    df = DataFrame(x=x, y=y)
-    d = sqrt((df[:x]-a).^2 + (df[:y]-b).^2)
-    twins = df[d .< 0.05,:]
-    
-    return twins
-end
-```
+    using DataFrames
+     
+    function df_distance()
+        x = rand(500)
+        y = rand(500)
+        a = rand()
+        b = rand()
+        
+        df = DataFrame(x=x, y=y)
+        d = sqrt((df[:x]-a).^2 + (df[:y]-b).^2)
+        twins = df[d .< 0.05,:]
+        
+        return twins
+    end
+    ```
+</div>
 
 ``` bash
 $ lspci
