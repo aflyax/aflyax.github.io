@@ -1,7 +1,7 @@
 # Dependencies
 markdown:         redcarpet
-# kramdown:
-  # input:          GFM
+kramdown:
+  input:          GFM
 highlighter:      pygments
 
 # Permalinks
