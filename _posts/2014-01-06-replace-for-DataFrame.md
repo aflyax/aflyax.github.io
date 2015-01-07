@@ -28,4 +28,4 @@ Unfortunately, if you feed the function an incomplete list, e.g: <div dir="ltr" 
 </span><span style="color: #a71d5d;"><span style="font-family: Consolas, Liberation Mono, Menlo, Courier, monospace;">=&gt;</span></span><span style="color: #333333;">
 </span><span style="color: #df5000;"><span style="font-family: Consolas, Liberation Mono, Menlo, Courier, monospace;">"OK"</span></span><span style="color: #333333;"><span style="font-family: Consolas, Liberation Mono, Menlo, Courier, monospace;">}</span></span></span></div>
 </div>
- ...then you get `key not found: 3`. I can write a `for` loop, but I am trying to think of something more elegant`...`
+ `...`then you get `key not found: 3`. I can write a `for` loop, but I am trying to think of something more elegant`...`
