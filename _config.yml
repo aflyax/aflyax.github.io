@@ -1,8 +1,6 @@
 # Dependencies
 markdown:         kramdown
-kramdown:
-  input:          GFM
-highlighter:      linguist
+highlighter:      GFM
 
 # Permalinks
 permalink:        pretty
