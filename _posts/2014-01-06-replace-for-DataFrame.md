@@ -40,3 +40,20 @@ replace!(dating_df, :opinion, {1 => "bad", 2 => "OK"})
 ```
 
 `...`then you get `key not found: 3`. I can write a `for` loop, but I am trying to think of something more elegant`...`
+
+``` julia
+using DataFrames
+ 
+function df_distance()
+    x = rand(500)
+    y = rand(500)
+    a = rand()
+    b = rand()
+    
+    df = DataFrame(x=x, y=y)
+    d = sqrt((df[:x]-a).^2 + (df[:y]-b).^2)
+    twins = df[d .< 0.05,:]
+    
+    return twins
+end
+```
