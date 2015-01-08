@@ -37,6 +37,7 @@ Finally, check each function's time:
 {% gist 6b8fd8ebd67cb7b577c2 %}
 
 Results:
+
 <code>
 **devect():**
 elapsed time: 5.863229397 seconds. 1918832240 bytes allocated, 30.58% gc time
