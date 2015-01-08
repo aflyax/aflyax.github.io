@@ -12,33 +12,11 @@ From what I read, Julia is more optimized for running `for` loops. For example, 
 
 In fact, in [The Relationship between Vectorized and Devectorized Code](http://www.johnmyleswhite.com/notebook/2013/12/22/the-relationship-between-vectorized-and-devectorized-code/), he points out that vectorized code seems to run slower in Julia:
 
-<table>
-    <tr>
-      <td>Approach</td>
-      <td>Language</td>
-      <td>Average Time</td>
-    </tr>
-    <tr>
-      <td>Vectorized</td>
-      <td>R</td>
-      <td>0.49</td>
-    </tr>
-    <tr>
-      <td>Devectorized</td>
-      <td>R</td>
-      <td>4.79</td>
-    </tr>
-    <tr>
-      <td>Vectorized</td>
-      <td>Julia</td>
-      <td>0.24</td>
-    </tr>
-    <tr>
-      <td>Devectorized</td>
-      <td>Julia</td>
-      <td>0.0035</td>
-    </tr>
-</table>
+| time(approach/language)   | R    | Julia  |
+|--------------|------|--------|
+| Vectorized   | 0.49 | 0.24   |
+| Devectorized | 4.79 | 0.0035 |
+
 
 I was curious to see if this still happens in the current stable release (`0.3.4` at the moment). I wrote three similar functions, each generating a set of random points <code>(x,y)</code> and calculating the distance from each of those points to another random point <code>(a,b)</code>.
 
