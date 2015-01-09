@@ -12,17 +12,3 @@ Before graduate school, I was a Computer Science and Neuroscience double-major a
 Recently, I decided to switch tracks from academic Neuroscience and move into business/industry-oriented environment where I would apply my analytical skills to solve "real-life" problems. I started exploring data science using Python (and a little R) and, recently, Julia, which seems to show a lot of promise for the future of data science. I am interested in learning how to do analytics and machine learning in these languages.
 
 In this blog, I will attempt to (sparsely) report on my learning process by blogging about some interesting ideas I encounter.
-
-<script>
-  (function() {
-    var cx = '008008955770079184929:uaa590jitzk';
-    var gcse = document.createElement('script');
-    gcse.type = 'text/javascript';
-    gcse.async = true;
-    gcse.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') +
-        '//www.google.com/cse/cse.js?cx=' + cx;
-    var s = document.getElementsByTagName('script')[0];
-    s.parentNode.insertBefore(gcse, s);
-  })();
-</script>
-<gcse:search></gcse:search>
