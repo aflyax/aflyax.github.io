@@ -40,8 +40,8 @@ Finally, check each function's time:
 
 Results:
 
-<code>**devect():**
-elapsed time: 5.863229397 seconds. 1918832240 bytes allocated, 30.58% gc time
+<code>**devect():**<br />
+elapsed time: 5.863229397 seconds. 1918832240 bytes allocated, 30.58% gc time<br />
 
 **vect():**
 elapsed time: 0.079824481 seconds. 45366656 bytes allocated, 55.56% gc time
