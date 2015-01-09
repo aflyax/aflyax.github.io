@@ -1,6 +1,7 @@
 ---
 layout: post
 title: Runtime speed for vectorized vs. devectorized code in Julia
+permalink: de_vectorization-runtime
 ---
 
 [About copy](http://aflyax.github.io/copy2.md)
