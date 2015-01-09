@@ -28,3 +28,7 @@ archive:          archive/
 
 github:
   repo:           https://github.com/aflyax
+
+collections:
+  docs:
+    output: true
