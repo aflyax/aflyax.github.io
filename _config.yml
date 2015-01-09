@@ -23,8 +23,8 @@ paginate:         5
 
 # Custom vars
 version:          7.7.0
-about:            http://aflyax.github.io/about/
-archive:          http://aflyax.github.io/archive/
+about:            about/
+archive:          archive/
 
 github:
   repo:           https://github.com/aflyax
