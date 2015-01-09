@@ -3,6 +3,8 @@ layout: post
 title: Runtime speed for vectorized vs. devectorized code in Julia
 ---
 
+[About copy](https://github.com/aflyax/aflyax.github.io/blob/master/public/about_copy.md)
+
 When dealing with arrays, we have two choices: apply a `for` loop or vectorize an array: apply the desired changes to all members of the array in a single statement. Vectorization famously speeds up R and Python code, which is why using `for` loops is discouraged for these languages.
 
 From what I read, Julia is more optimized for running `for` loops. For example, according to John Myles White:
