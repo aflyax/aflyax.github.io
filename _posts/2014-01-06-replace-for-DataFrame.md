@@ -13,7 +13,7 @@ In Python/Pandas we have:
 Output:
 
 ```
-before:
+before: 
 |   | icecream | miles    | something | opinion |
 |---|----------|----------|-----------|---------|
 | 1 | 40920    | 8.326976 | 0.953952  | 3       |
