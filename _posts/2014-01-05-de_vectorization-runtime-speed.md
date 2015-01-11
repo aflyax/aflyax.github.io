@@ -18,7 +18,6 @@ In fact, in [The Relationship between Vectorized and Devectorized Code](http://w
 | Vectorized   | 0.49 | 0.24   |
 | Devectorized | 4.79 | 0.0035 |
 
-
 I was curious to see if this still happens in the current stable release (`0.3.4` at the moment). I wrote three similar functions, each generating a set of random points <code>(x,y)</code> and calculating the distance from each of those points to another random point <code>(a,b)</code>.
 
 Devectorized code:
