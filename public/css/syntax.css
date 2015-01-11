@@ -26,16 +26,16 @@
 .kt { color: #445588; font-weight: bold } /* Keyword.Type */
 .m { color: #1C5A99 } /* Literal.Number */
 .s { color: #DF5000 } /* Literal.String */
-.na { color: #008080 } /* Name.Attribute */
-.nb { color: #0086B3 } /* Name.Builtin */
+.na { color: green } /* Name.Attribute */
+.nb { color: green } /* Name.Builtin */
 .nc { color: #445588; font-weight: bold } /* Name.Class */
 .no { color: #008080 } /* Name.Constant */
 .nd { color: #D26911; font-weight: bold } /* Name.Decorator */
-.ni { color: #800080 } /* Name.Entity */
+.ni { color: orange } /* Name.Entity */
 .ne { color: #990000; font-weight: bold } /* Name.Exception */
 .nf { color: #795DB7; font-weight: normal } /* Name.Function */
 .nl { color: orange; font-weight: bold } /* Name.Label */
-.nn { color: #555555 } /* Name.Namespace */
+.nn { color: green } /* Name.Namespace */
 .nt { color: #000080 } /* Name.Tag */
 .nv { color: green } /* Name.Variable */
 .ow { color: #000000; font-weight: bold } /* Operator.Word */
