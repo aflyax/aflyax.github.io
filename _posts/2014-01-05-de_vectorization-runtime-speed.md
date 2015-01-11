@@ -62,7 +62,7 @@ function devect()
     
     return twins
 end
-{% highlight %}
+{% endhighlight %}
 
 
 Vectorized code:
