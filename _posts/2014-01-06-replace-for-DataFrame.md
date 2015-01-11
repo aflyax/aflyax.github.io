@@ -33,11 +33,10 @@ Julia's equivalent (I don't know yet if this function is already implemented):
 The output is the same as above. (Note: apparently, in <code>0.4</code> release, the dictionary syntax will change.)
 
 Unfortunately, if you feed the function an incomplete list, e.g:
-
-<div class="highlight highlight-julia"><pre><span class="pl-s3">replace!</span>(dating_df, <span class="pl-c1">:opinion</span>, {<span class="pl-c1">1</span> <span class="pl-k">=</span><span class="pl-k">&gt;</span> <span class="pl-s1"><span class="pl-pds">"</span>bad<span class="pl-pds">"</span></span>, <span class="pl-c1">2</span> <span class="pl-k">=</span><span class="pl-k">&gt;</span> <span class="pl-s1"><span class="pl-pds">"</span>OK<span class="pl-pds">"</span></span>})</pre></div>
+<!--<div class="highlight highlight-julia"><pre><span class="pl-s3">replace!</span>(dating_df, <span class="pl-c1">:opinion</span>, {<span class="pl-c1">1</span> <span class="pl-k">=</span><span class="pl-k">&gt;</span> <span class="pl-s1"><span class="pl-pds">"</span>bad<span class="pl-pds">"</span></span>, <span class="pl-c1">2</span> <span class="pl-k">=</span><span class="pl-k">&gt;</span> <span class="pl-s1"><span class="pl-pds">"</span>OK<span class="pl-pds">"</span></span>})</pre></div>-->
 
 ``` julia
 replace!(dating_df, :opinion, {1 => "bad", 2 => "OK"})
 ```
 
-`...`then you get `key not found: 3`. I can write a `for` loop, but I am trying to think of something more elegant`...`
+`...`then you get `key not found: 3`. I can write a `for` loop, but I am trying to think of something more elegant.
