@@ -10,6 +10,8 @@ permalink: replace-for-DataFrame
 In Python/Pandas we have:
 
 <script src="https://gist.github.com/aflyax/29fbce693d198040cd68.js"></script>
+<code data-gist-id="29fbce693d198040cd68" data-gist-hide-footer="true" data-gist-hide-line-numbers="true"></code>
+
 Output:
 
 ```
