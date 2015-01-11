@@ -12,7 +12,6 @@ In Python/Pandas we have:
 <script src="https://gist.github.com/aflyax/29fbce693d198040cd68.js"></script>
 Output:
 
-```
 before: 
 |   | icecream | miles    | something | opinion |
 |---|----------|----------|-----------|---------|
@@ -26,7 +25,6 @@ after:
 | 1 | 40920    | 8.326976 | 0.953952  | good    |
 | 2 | 14488    | 7.153469 | 1.673904  | OK      |
 | 3 | 26052    | 1.441871 | 0.805124  | bad     |
-```
 
 Julia's equivalent (I don't know yet if this function is already implemented):
 <br />
