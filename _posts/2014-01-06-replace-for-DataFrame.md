@@ -9,7 +9,6 @@ permalink: replace-for-DataFrame
 <img alt="The General Problem" src="http://imgs.xkcd.com/comics/the_general_problem.png" /><br />
 In Python/Pandas we have:
 
-<script src="https://gist.github.com/aflyax/29fbce693d198040cd68.js"></script>
 <code data-gist-id="29fbce693d198040cd68" data-gist-hide-footer="true" data-gist-hide-line-numbers="true"></code>
 
 Output:
@@ -32,7 +31,7 @@ after:
 
 Julia's equivalent (I don't know yet if this function is already implemented):
 <br />
-<script src="https://gist.github.com/aflyax/23dfcfcedc53e44026f0.js"></script>
+<code data-gist-id="23dfcfcedc53e44026f0" data-gist-hide-footer="true" data-gist-hide-line-numbers="true"></code>
 
 The output is the same as above. (Note: apparently, in <code>0.4</code> release, the dictionary syntax will change.)
 
