@@ -13,4 +13,4 @@ Recently, I decided to switch tracks from academic Neuroscience and move into bu
 
 In this blog, I will attempt to (sparsely) report on my learning process by blogging about some interesting ideas I encounter.
 
-[resume](/resume.pdf/)
+[resume](/resume.pdf)
