@@ -13,7 +13,7 @@ title:            '{data dendrites}'
 tagline:          'exploring data science in Python and Julia'
 description:      'exploring data science using <a href="http://nbviewer.ipython.org/github/gumption/Python_for_Data_Science/blob/master/Python_for_Data_Science_all.ipynb" target="_blank">Python</a> and <a href="http://julialang.org" target="_blank">Julia</a>'
 url:              http://aflyax.github.io
-baseurl:          /
+baseurl:          http://aflyax.github.io/
 
 author:
   name:           'Alexander Flyax'
@@ -25,7 +25,7 @@ paginate:         5
 version:          7.7.0
 about:            about/
 archive:          archive/
-resume:           resume.pdf
+resume:           https://aflyax.github.io/resume.pdf
 
 github:
   repo:           https://github.com/aflyax
