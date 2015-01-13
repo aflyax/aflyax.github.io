@@ -59,7 +59,8 @@ html {
 }
 
 body {
-  color: #515151;
+  /*font-family: Georgia, Consolas;*/
+  color: black;
   background-color: #fff;
   -webkit-text-size-adjust: 100%;
       -ms-text-size-adjust: 100%;
@@ -67,7 +68,7 @@ body {
 
 /* No `:visited` state is required by default (browsers will use `a`) */
 a {
-  color: #268bd2;
+  color: #DF5000; /* 268bd2 */
   text-decoration: none;
 }
 a strong {
@@ -93,6 +94,7 @@ h1 {
 h2 {
   margin-top: 1rem;
   font-size: 1.5rem;
+  font-family: Georgia, Consolas, "DejaVu Sans Mono", monospace, Menlo, Monaco, "Courier New", monospace;
 }
 h3 {
   margin-top: 1.5rem;
@@ -155,7 +157,7 @@ pre {
 code {
   padding: 0em 0em;
   font-size: 15px;
-  color: #4D2226;
+  color: #4D2226; /* 4D2226 #1C5A99 */
   background-color: transparent; /*#f9f9f9*/
   border-radius: 0px;
 }
@@ -325,7 +327,9 @@ tbody tr:nth-child(odd) th {
 .page-title,
 .post-title,
 .post-title a {
+  font-size: 125%;
   color: #303030;
+  font-family: DejaVu Sans Mono, Consolas
 }
 .page-title,
 .post-title {

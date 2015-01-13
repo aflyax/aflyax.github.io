@@ -33,6 +33,7 @@
 
 html {
   font-family: "PT Sans", Helvetica, Arial, sans-serif;
+  color: black;
 }
 @media (min-width: 48em) {
   html {
