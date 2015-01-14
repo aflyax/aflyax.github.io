@@ -63,7 +63,7 @@ elapsed time: 0.06146292 seconds (37263752 bytes allocated, 52.91% gc time)
 elapsed time: 0.075607938 seconds (30415860 bytes allocated, 41.40% gc time)
 ```
 
-Amazing! The devectorized version is not a few times quicker than the vectorized ones.
+Amazing! The devectorized version is now a few times quicker than the vectorized ones.
 
 Something I heard at a talk today: from Python and R, we inherit the habit of searching through the documentation to find the "right" function for what we are trying to do, because its authors likely optimized it. In Julia, you don't have to do that: you can just write your own `for` loop, and it will be (almost) as fast as the "optimized version" (assuming you do it right, without silly mistakes like above).
 
