@@ -23,12 +23,12 @@
 .kn { color: #000000; font-weight: bold } /* Keyword.Namespace */
 .kp { color: #000000; font-weight: bold } /* Keyword.Pseudo */
 .kr { color: #000000; font-weight: bold } /* Keyword.Reserved */
-.kt { color: #445588; font-weight: bold } /* Keyword.Type */
+.kt { color: #445588; font-weight: normal } /* Keyword.Type */
 .m { color: #1C5A99 } /* Literal.Number */
 .s { color: #DF5000 } /* Literal.String */
 .na { color: green } /* Name.Attribute */
-.nb { color: green } /* Name.Builtin */
-.nc { color: #445588; font-weight: bold } /* Name.Class */
+.nb { color: #007500 } /* Name.Builtin */
+.nc { color: #445588; font-weight: normal } /* Name.Class */
 .no { color: #008080 } /* Name.Constant */
 .nd { color: #D26911; font-weight: bold } /* Name.Decorator */
 .ni { color: orange } /* Name.Entity */
