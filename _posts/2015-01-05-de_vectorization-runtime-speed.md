@@ -20,21 +20,7 @@ In fact, in [The Relationship between Vectorized and Devectorized Code](http://w
 
 I was curious to see if this still happens in the current stable release (`0.3.4` at the moment). I wrote three similar functions, each generating a set of random points <code>(x,y)</code> and calculating the distance from each of those points to another random point <code>(a,b)</code>.
 
-Devectorized code:
-
-{% gist 348e753db1e0c954f4d0 %}
-
-Vectorized code:
-
-{% gist 79ce64c4117ea31f6221 %}
-
-Vectorized code with <code>DataFrames:</code>
-
-{% gist 3fdfdffe84c748e8056d %}
-
-Finally, check each function's time:
-
-{% gist 6b8fd8ebd67cb7b577c2 %}
+<code data-gist-id="d90e477f4a371d53c395" data-gist-hide-footer="true"></code>
 
 Results:
 
@@ -49,4 +35,36 @@ elapsed time: 0.087366592 seconds. 38463360 bytes allocated, 51.15% gc time</cod
 
 We can see that both of the vectorized functions perform faster than the devectorized function, with the function relying on `DataFrames` performing only a little slower than the one using arrays.
 
-**Update:** Using `@inbounds` and `@simd` doesn't seem to help much.
+**Update:** It was pointed out to me that I am growing my twins incorrectly: I am basically re-creating the variable `twins` every time anew (a bad practice I inherited from Matlab). I also realized I don't need to grow `dist` at all; I just need to compare it once to `0.05`. Rewriting the function:
+
+``` julia
+function devect(x::Array{Float64}, y::Array{Float64}, a::Float64, b::Float64)
+    dist = Array(Float64, 0)
+    twins_x = Array(Float64, 0)
+    twins_y = Array(Float64, 0)
+    
+    for i in 1:500
+        dist = sqrt((x[i] - a)^2 + (y[i] - b)^2)
+        if dist < 0.05
+            push!(twins_x, x[i])
+            push!(twins_y, y[i])
+        end
+    end
+    
+    return [twins_x twins_y]
+end
+```
+
+Result for three functions:
+
+```
+elapsed time: 0.015929117 seconds (8605024 bytes allocated)
+elapsed time: 0.06146292 seconds (37263752 bytes allocated, 52.91% gc time)
+elapsed time: 0.075607938 seconds (30415860 bytes allocated, 41.40% gc time)
+```
+
+Amazing! The devectorized version is not a few times quicker than the vectorized ones.
+
+Somethin I heard at a talk today: from Python and R, we inherit the habit of searching through the documentation to find the "right" function for what we are trying to do, because its authors likely optimized it. In Julia, you don't have to do that: you can just write your own `for` loop, and it will just (almost) just as fast as the "optimized version" (assuming you do it right, without silly mistakes like above).
+
+This is great if you're just learning statistics and machine learning using Julia as a medium, because you can write your own functions and modules from scratch, instead of learning black-box methods of scikit-learn, where you plu in your datasets. (For instance, one could listen to Andrew Ng's Coursera lectures on Machine Learning and translate them to Julia from Octave or go through *Machine Learning in Action* and translate it from Python.)
