@@ -47,13 +47,13 @@
 .sb { color: #DF5000 } /* Literal.String.Backtick */
 .sc { color: #DF5000 } /* Literal.String.Char */
 .sd { color: #DF5000 } /* Literal.String.Doc */
-.s2 { color: #DF5000 } /* Literal.String.Double */
+.s2 { color: #CF4A00 } /* Literal.String.Double */
 .se { color: #DF5000 } /* Literal.String.Escape */
 .sh { color: #DF5000 } /* Literal.String.Heredoc */
 .si { color: #DF5000 } /* Literal.String.Interpol */
 .sx { color: #DF5000 } /* Literal.String.Other */
 .sr { color: #DF5000 } /* Literal.String.Regex */
-.s1 { color: #DF5000 } /* Literal.String.Single */
+.s1 { color: #CF4A00 } /* Literal.String.Single */
 .ss { color: #990073 } /* Literal.String.Symbol */
 .bp { color: #999999 } /* Name.Builtin.Pseudo */
 .vc { color: green } /* Name.Variable.Class */
