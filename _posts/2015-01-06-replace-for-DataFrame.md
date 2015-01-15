@@ -3,6 +3,7 @@ layout: post
 title: replace( ) for DataFrames
 permalink: replace-for-DataFrames
 tags: [julia, python, dataframes, analysis]
+comments: true
 ---
 <img src="http://imgs.xkcd.com/comics/the_general_problem.png" />
 In Python/Pandas we have:
