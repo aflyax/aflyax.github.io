@@ -4,9 +4,6 @@ title: replace( ) for DataFrames
 permalink: replace-for-DataFrames
 tags: [julia, dataframes, analysis]
 ---
-
-<div dir="ltr" style="text-align: left;" trbidi="on">
-<div dir="ltr" style="text-align: left;" trbidi="on">
 <img alt="The General Problem" src="http://imgs.xkcd.com/comics/the_general_problem.png" /><br />
 In Python/Pandas we have:
 
