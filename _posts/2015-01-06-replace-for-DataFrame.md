@@ -1,7 +1,8 @@
 ---
 layout: post
-title: replace( ) for DataFrame
-permalink: replace-for-DataFrame
+title: replace( ) for DataFrames
+permalink: replace-for-DataFrames
+tags: [julia, dataframes, analysis]
 ---
 
 <div dir="ltr" style="text-align: left;" trbidi="on">

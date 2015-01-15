@@ -1,35 +1,19 @@
-# Dependencies
-markdown:         redcarpet
+name: '{data dendrites}'
+url: 'http://127.0.0.1:4000/'
+description: 'discovering data science with Julia and Python'
+
+exclude: [Gemfile, Gemfile.lock, README.md]
+markdown: redcarpet
+excerpt_separator:  "<!--more-->"
 redcarpet:
-  extensions: ["no_intra_emphasis", "fenced_code_blocks", "autolink", "tables", "with_toc_data"]
-highlighter:      pygments
+  extensions: ["no_intra_emphasis", "superscript", "footnotes", "fenced_code_blocks", "autolink", "tables", "with_toc_data"]
 
-# Permalinks
-permalink:        pretty
-relative_permalinks: false
+highlighter: pygments
 
-# Setup
-title:            '{data dendrites}'
-tagline:          'exploring data science in Python and Julia'
-description:      'exploring data science using <a href="http://nbviewer.ipython.org/github/gumption/Python_for_Data_Science/blob/master/Python_for_Data_Science_all.ipynb" target="_blank">Python</a> and <a href="http://julialang.org" target="_blank">Julia</a>'
-url:              http://aflyax.github.io
-baseurl:          http://aflyax.github.io/
+author: 'Alexander Flyax'
+disqus_shortname: datadendrites
+google_analytics: UA-6063059-2
 
-author:
-  name:           'Alexander Flyax'
-  url:            https://aflyax.github.io
-
-paginate:         5
-
-# Custom vars
-version:          7.7.0
-about:            about/
-archive:          archive/
-resume:           https://aflyax.github.io/resume.pdf
-
-github:
-  repo:           https://github.com/aflyax
-
-collections:
-  docs:
-    output: true
+sass:
+    sass_dir: _sass
+    style: :compressed

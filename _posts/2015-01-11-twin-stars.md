@@ -2,6 +2,7 @@
 layout: post
 title: Finding probability of twin stars
 permalink: /twin-stars/
+tags: [julia, distance]
 ---
 Generate `num` stars on a field of `(x,y,z) = [low:high]` and find all twin stars (those within `min_d` of each other). Code in Python:
 

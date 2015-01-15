@@ -1,43 +1,45 @@
-<div class="sidebar">
-  <div class="container sidebar-sticky">
-    <div class="sidebar-about">
-      <h2>
-        <a href="{{ site.baseurl }}">
-          {{ site.title }}
-        </a>
-      </h2>
-      <p class="lead">{{ site.description }}</p>
-    </div>
+<!-- Target for toggling the sidebar `.sidebar-checkbox` is for regular
+     styles, `#sidebar-checkbox` for behavior. -->
+<input type="checkbox" class="sidebar-checkbox" id="sidebar-checkbox">
 
-    <nav class="sidebar-nav">
-      <a class="sidebar-nav-item{% if page.url == site.baseurl %} active{% endif %}" href="{{ site.baseurl }}">home</a>
+<!-- Toggleable sidebar -->
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-logo">  
+    <img src = "/images/dendrites.png"></img>  
+  </div>
 
-<!--       {% comment %}
-        The code below dynamically generates a sidebar nav of pages with
-        `layout: page` in the front-matter. See readme for usage.
-      {% endcomment %}
+  <nav class="sidebar-nav">
+    <a class="sidebar-nav-item{% if page.url == site.url %} active{% endif %}" href="/">Home</a>
 
-      {% assign pages_list = site.pages %}
-      {% for node in pages_list %}
-        {% if node.title != null %}
-          {% if node.layout == "page" %}
-            <a class="sidebar-nav-item{% if page.url == node.url %} active{% endif %}" href="{{ node.url }}">{{ node.title }}</a>
-          {% endif %}
+    {% comment %}
+      The code below dynamically generates a sidebar nav of pages with
+      `layout: page` in the front-matter. See readme for usage.
+    {% endcomment %}
+
+    {% assign pages_list = site.pages | sort:"url" %}
+    {% for node in pages_list %}
+      {% if node.title != null %}
+        {% if node.layout == "page" %}
+          <a class="sidebar-nav-item{% if page.url == node.url %} active{% endif %}" href="{{ node.url }}">{{ node.title }}</a>
         {% endif %}
-      {% endfor %} -->
-     
-     <!--  <a class="sidebar-nav-item" href="{{ site.github.repo }}/archive/v{{ site.version }}.zip">Download</a> -->
+      {% endif %}
+    {% endfor %}
 
-      <a class="sidebar-nav-item" href="{{ node.url }}/{{site.about}}">about</a>
-      <a class="sidebar-nav-item" href="{{ node.url }}/{{site.archive}}">archive</a>
-      <a class="sidebar-nav-item" href="{{ site.github.repo }}">github repositories</a>
-      <a class="sidebar-nav-item" href="https://aflyax.github.io/resume.pdf">resume</a>
+  </nav>
 
-
-      <span class="sidebar-nav-item">currently v{{ site.version }}</span>
-    </nav>
-
-    <p>⊗ {{ site.time | date: '%Y' }}. לה"ו<br />
-    sharing information is as natural as thinking</p>
+  <div class="sidebar-item">
+    <!-- <p>
+      After a recent Ph.D. and post-doc in academic Neuroscience, I am transitioning into the world of data science. This blog will sparsely document my exploration of analytics, statistics, and machine learning with Julia and Python 
+    </p> -->
+    <p class="social-icons">
+      <a href="https://github.com/aflyax"><i class="fa fa-github fa-2x"></i></a>
+      <a href="https://twitter.com/aflyax"><i class="fa fa-twitter fa-2x"></i></a>
+      <a href="https://www.linkedin.com/pub/alexander-flyax"><i class="fa fa-linkedin fa-2x"></i></a>
+      <a href="/resume.pdf"><i class="fa fa-file-text fa-2x"></i></a>
+      
+      <!-- <a href="https://plus.google.com/107712815082559800507?rel=author"><i class="fa fa-plus fa-2x"></i></a> -->
+      <a href="/feed.xml"><i class="fa fa-rss fa-2x"></i></a>
+    </p><p>⊗ {{ site.time | date: '%Y' }}. לה"ו <br> sharing information <font size = "4">~</font> thinking</p>
+    <!-- </p> -->
   </div>
 </div>
