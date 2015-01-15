@@ -4,7 +4,7 @@ title: replace( ) for DataFrames
 permalink: replace-for-DataFrames
 tags: [julia, python, dataframes, analysis]
 ---
-<img alt="The General Problem" src="http://imgs.xkcd.com/comics/the_general_problem.png" /><br />
+<img src="http://imgs.xkcd.com/comics/the_general_problem.png" />
 In Python/Pandas we have:
 
 <code data-gist-id="29fbce693d198040cd68" data-gist-hide-footer="true" data-gist-hide-line-numbers="true"></code>
@@ -28,6 +28,9 @@ after:
 ```
 
 Julia's equivalent (I don't know yet if this function is already implemented):
+
+<!-- more -->
+
 <br />
 <code data-gist-id="23dfcfcedc53e44026f0" data-gist-hide-footer="true" data-gist-hide-line-numbers="true"></code>
 

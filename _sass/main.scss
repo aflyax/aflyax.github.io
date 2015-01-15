@@ -11,6 +11,43 @@
   float: right;
 }
 
+.page, .post {
+  margin-bottom: 2em;
+}
+
+.post-content {
+  text-align: justify;
+}
+
+.post-content img {
+  margin: 0 auto;
+  border: 1px solid rgb(245, 245, 245);
+  padding: 40px;
+  max-width: 100%;
+}
+
+.read-more {
+    overflow: hidden;
+}
+
+a.read-more-link {
+    float: right;
+    display: block;
+    padding: 5px 10px;
+    background-color: #303030;
+    border-radius: 10px;
+    color: #FFF;
+    font-size: 80%;
+}
+
+a.read-more-link:hover {
+    background-color: #515151;
+    text-decoration: none;
+}
+
+a.read-more-link:after {
+  content: ' \00BB';
+}
 
 html {
   font-size: 18px;
