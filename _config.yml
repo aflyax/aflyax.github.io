@@ -1,5 +1,5 @@
 name: '{data dendrites}'
-url: 'http://127.0.0.1:4000/'
+url: 'aflyax.github.io/'
 description: 'discovering data science with Julia and Python'
 
 exclude: [Gemfile, Gemfile.lock, README.md]
