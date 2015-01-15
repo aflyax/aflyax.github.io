@@ -1,5 +1,5 @@
 name: '{data dendrites}'
-url: 'aflyax.github.io/'
+# url: 'aflyax.github.io/'
 description: 'discovering data science with Julia and Python'
 
 exclude: [Gemfile, Gemfile.lock, README.md]
@@ -13,6 +13,8 @@ highlighter: pygments
 author: 'Alexander Flyax'
 disqus_shortname: datadendrites
 google_analytics: UA-6063059-2
+
+paginate:            5
 
 sass:
     sass_dir: _sass
