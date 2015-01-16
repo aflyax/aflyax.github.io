@@ -8,7 +8,7 @@ tags: [julia, functions, optimization]
 
 According to [Julia documentation](http://julia.readthedocs.org/en/latest/manual/style-guide/)...
 
->It is [...] worth emphasizing that functions should take arguments, instead of operating directly on global variables (aside from constants like pi).
+>It is [...] worth emphasizing that functions should take arguments, instead of operating directly on global variables (aside from constants like `pi`).
 
 Let's see if there is a difference in runtime depending on whether a function takes arguments, takes globals, or uses internal variables (the latter may not be a very fair comparison in this case).
 
