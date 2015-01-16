@@ -12,6 +12,8 @@ According to [Julia documentation](http://julia.readthedocs.org/en/latest/manual
 
 Let's see if there is a difference in runtime depending on whether a function takes arguments, takes globals, or uses internal variables (the latter may not be a very fair comparison in this case).
 
+<!-- more -->
+
 <code data-gist-id="26352b6402d604b7235d" data-gist-hide-footer="true"></code>
 
 Output:
