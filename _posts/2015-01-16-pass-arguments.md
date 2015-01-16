@@ -5,7 +5,7 @@ permalink: pass-arguments
 comments: true
 tags: [julia, functions, optimization]
 ---
-
+![](http://imgs.xkcd.com/comics/correlation.png "If correlation doesn't imply causation, then what does?")
 According to [Julia documentation](http://julia.readthedocs.org/en/latest/manual/style-guide/)...
 
 >It is [...] worth emphasizing that functions should take arguments, instead of operating directly on global variables (aside from constants like `pi`).
