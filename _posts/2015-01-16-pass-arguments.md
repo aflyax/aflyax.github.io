@@ -24,4 +24,4 @@ devect_internal elapsed time: 0.110363588 seconds (86,281,768 bytes allocated, 2
 devect_arg elapsed time: 0.034368194 seconds (5,954,048 bytes allocated)
 ```
 
-Clear difference not just in the runtime speed, but also in the memory use.
+Clear difference not just in the runtime, but also in the memory use.
