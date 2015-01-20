@@ -14,7 +14,7 @@ Let's see if there is a difference in runtime depending on whether a function ta
 
 <!-- more -->
 
-<code data-gist-id="26352b6402d604b7235d" data-gist-hide-footer="true"></code>
+<code data-gist-id="26352b6402d604b7235d" data-gist-hide-footer="true" data-gist-hide-line-numbers="true"></code>
 
 Output:
 

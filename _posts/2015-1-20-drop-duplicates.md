@@ -46,20 +46,21 @@ In Julia, it's a little more straightforward. You can use `union(var)` to drop d
 ``` julia
 a = int(rand(10)*15)
 
-println("a: \t\t", a)
-println("union: \t\t", union(a))
-println("sort union: \t", sort(union(a)))
+println("a: ", a)
+println("unique: ", union(a))
+println("sort unique: ", sort(union(a)))
 
 b = int(rand(10)*15)
-println("b: \t\t", b)
-println("common(a,b): \t", sort(union(a,b)))
+println("b: ", b)
+println("common(a,b): ", sort(union(a,b)))
 ```
+
 Out:
 
 ```
-a: 	 	     [3,9,9,8,0,5,5,1,13,3]
-union: 	 	 [3,9,8,0,5,1,13]
-sort union:  [0,1,3,5,8,9,13]
-b: 		     [3,13,12,14,12,1,4,6,14,2]
-common(a,b): [0,1,2,3,4,5,6,8,9,12,13,14]
+a: 	 	      [3,9,9,8,0,5,5,1,13,3]
+unique: 	  [3,9,8,0,5,1,13]
+sort unique:  [0,1,3,5,8,9,13]
+b: 		      [3,13,12,14,12,1,4,6,14,2]
+common(a,b):  [0,1,2,3,4,5,6,8,9,12,13,14]
 ```
