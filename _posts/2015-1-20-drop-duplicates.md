@@ -53,7 +53,7 @@ println("sort unique: ", sort(union(a)))
 
 b = int(rand(10)*15)
 println("b: ", b)
-println("common(a,b): ", sort(union(a,b)))
+println("union(a,b): ", sort(union(a,b)))
 ```
 
 Out:
