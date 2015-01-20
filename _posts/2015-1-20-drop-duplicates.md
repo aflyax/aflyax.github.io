@@ -5,7 +5,7 @@ permalink: drop-duplicates
 comments: true
 tags: [julia, python, arrays, sorting, duplicates]
 ---
-In Python, if we try to remove duplicates from a list, we can convert a list to a set and then back to a list:
+In Python, if we try to remove duplicates from a list, we can convert the list to a set and then back to a list:
 
 ``` python
 a = rand(15)*10
@@ -14,6 +14,7 @@ print(a)
 list(set(a))
 ```
 Out:
+
 ```
 [3 5 6 3 7 6 9 4 4 4 1 7 3 2 1]
 [1, 2, 3, 4, 5, 6, 7, 9]
@@ -33,8 +34,8 @@ def sort(seq):
 
 sort(a)
 ```
-
 Out:
+
 ```
 [2 8 1 9 1 0 5 6 7 6 6 9 3 6 3]
 [2, 8, 1, 9, 0, 5, 6, 7, 3]
@@ -54,6 +55,7 @@ println("b: \t\t", b)
 println("common(a,b): \t", sort(union(a,b)))
 ```
 Out:
+
 ```
 a: 	 	    [3,9,9,8,0,5,5,1,13,3]
 union: 	 	[3,9,8,0,5,1,13]
