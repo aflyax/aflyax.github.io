@@ -31,6 +31,7 @@ def foo(seq):
     seen = set()
     seen_add = seen.add
     return [ x for x in seq if not (x in seen or seen_add(x))]
+    # in each iteration of the for loop, x is added to seen by being passed to seen_add() which is a set.add() function
 
 foo(a)
 ```
