@@ -78,6 +78,9 @@ That's really the core of the exercise. I also wrote two "wrapper" functions, on
 The last two lines call the `plot_probs()`, having it run ten trials (each time test data set being 25% of the whole dataset).
 
 ```julia
+
+using DataFrames, Distances, Gadfly
+
 function mass_kNN(test_array::Matrix, train_array::Matrix, test_labels::Vector, train_labels::Vector, k::Int64)
     
     count_correct = 0
