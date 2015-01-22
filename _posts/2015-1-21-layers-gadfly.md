@@ -10,6 +10,8 @@ It's not really very clear from the [documentation](http://gadflyjl.org/#layers)
 <!-- more -->
 
 ``` julia
+# tested in IJulia notebook
+
 using Gadfly
 #Julia is slow the first time you load Gadfly package AND the first time you plot
 
@@ -26,7 +28,7 @@ q = layer(x=x, y=w, Geom.line, Theme(default_color=color("indianred")))
 append!(p.layers, q);
 
 # draw(SVGJS("sin-cos.svg", 7.5inch, 3.25inch), p)
-p                   #display the image
+p                   #display the image in the notebook
 ```
 
 The commented-out `draw` statement will save the image in an SVG format (feel free to interact with the Gadfly plot below).
