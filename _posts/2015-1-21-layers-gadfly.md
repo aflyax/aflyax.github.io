@@ -24,7 +24,7 @@ append!(p.layers, q);
 p #display the image
 ```
 
-The commented-out part will save the image in an SVG format (feel free to interact with the Gadfly image below).
+The commented-out part will save the image in an SVG format (feel free to interact with the Gadfly plot below).
 
 <object type="image/svg+xml" data="\images\sin-cos.svg"></object>
 
