@@ -5,7 +5,7 @@ permalink: layers-gadfly
 comments: true
 tags: [julia, gadfly, plotting]
 ---
-It's not really very clear from the [documentation](http://gadflyjl.org/#layers) of Gadfly package how to add layers to an existing plot outside of the first `plot` declaration, or how to display a plot once a layer has been added. After asking around, I finally figure out how to do it:
+It's not really very clear from the [documentation](http://gadflyjl.org/#layers) of Gadfly package how to add layers to an existing plot outside of the first `plot` declaration, or how to display a plot once a layer has been added. After asking around, I finally figured out how to do it:
 
 ``` julia
 x = [-π:0.1:π]
@@ -21,7 +21,7 @@ q = layer(x=x, y=w, Geom.line, Theme(default_color=color("indianred")))
 append!(p.layers, q);
 
 # draw(SVGJS("sin-cos.svg", 7.5inch, 3.25inch), p)
-p
+p #display the image
 ```
 
 The commented-out part will save the image in an SVG format (feel free to interact with the Gadfly image below).
