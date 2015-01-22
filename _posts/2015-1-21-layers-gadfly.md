@@ -28,7 +28,7 @@ q = layer(x=x, y=w, Geom.line, Theme(default_color=color("indianred")))
 append!(p.layers, q);
 
 # draw(SVGJS("sin-cos.svg", 7.5inch, 3.25inch), p)
-p                   #display the image in the notebook
+p                   # display the image in the notebook
 ```
 
 The commented-out `draw` statement will save the image in an SVG format (feel free to interact with the Gadfly plot below).
