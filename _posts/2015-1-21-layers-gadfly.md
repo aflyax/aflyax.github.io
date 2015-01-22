@@ -12,10 +12,14 @@ x = [-π:0.1:π]
 y = sin(x)
 w = cos(x)
 
-p = plot(x=x, y=y, Geom.point, Geom.line, Theme(default_color=color("seagreen")))
+pi = round(π, 2)
+ticks = [-pi, -pi/2, 0, pi/2, pi]
+
+p = plot(x=x, y=y, Geom.point, Geom.line, Theme(default_color=color("seagreen")), Guide.xticks(ticks=ticks))
 q = layer(x=x, y=w, Geom.line, Theme(default_color=color("indianred")))
 append!(p.layers, q);
-# draw(SVGJS("sin-cos.svg", 7.5inch, 3.25inch), p)
+
+draw(SVGJS("sin-cos.svg", 7.5inch, 3.25inch), p)
 p
 ```
 
