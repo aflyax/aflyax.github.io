@@ -67,7 +67,7 @@ Out:
 | 6   | 0.799722 | 0.484802  | 0.608961  | 1       |
 ```
 
-Now we are ready for the kNN function. The function itself uses Distances package, which I imported in the first code block above.
+Now we are ready for the kNN function. The function itself uses `Distances` package, which I imported in the first code block above.
 
 <code data-gist-id="abcbea50f614c8479bc7" data-gist-hide-footer="true"></code>
 
