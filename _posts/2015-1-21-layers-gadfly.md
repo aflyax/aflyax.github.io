@@ -20,7 +20,7 @@ p = plot(x=x, y=y, Geom.point, Geom.line, Theme(default_color=color("seagreen"))
 q = layer(x=x, y=w, Geom.line, Theme(default_color=color("indianred")))
 append!(p.layers, q);
 
-draw(SVGJS("sin-cos.svg", 7.5inch, 3.25inch), p)
+# draw(SVGJS("sin-cos.svg", 7.5inch, 3.25inch), p)
 p
 ```
 
