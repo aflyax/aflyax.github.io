@@ -28,7 +28,7 @@ The commented-out `draw` statement will save the image in an SVG format (feel fr
 
 <object type="image/svg+xml" data="\images\sin-cos.svg"></object>
 
-To display it above in this post, I entered:
+To embed it above in this post, I entered:
 
 ``` html
 <object type="image/svg+xml" data="\images\sin-cos.svg"></object>
