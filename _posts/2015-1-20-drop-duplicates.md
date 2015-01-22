@@ -42,7 +42,11 @@ Out:
 [2, 8, 1, 9, 0, 5, 6, 7, 3]
 ```
 
-In Julia, it's a little more straightforward. You can use `union(var)` to drop duplicates and `sort(union(var))` to sort the result. `union(a,b)` finds the union between two variables and can be used to drop duplicates between them.
+In Julia, it's a little more straightforward. 
+
+<!-- more --> 
+
+You can use `union(var)` to drop duplicates and `sort(union(var))` to sort the result. `union(a,b)` finds the union between two variables and can be used to drop duplicates between them.
 
 ``` julia
 a = int(rand(10)*15)

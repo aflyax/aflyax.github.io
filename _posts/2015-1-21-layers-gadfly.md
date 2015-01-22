@@ -7,6 +7,8 @@ tags: [julia, gadfly, plotting]
 ---
 It's not really very clear from the [documentation](http://gadflyjl.org/#layers) of Gadfly package how to add layers to an existing plot outside of the first `plot` statement, or how to display a plot once a layer has been added. After asking around, I finally figured out how to do it:
 
+<!-- more -->
+
 ``` julia
 x = [-π:0.1:π]
 y = sin(x)
