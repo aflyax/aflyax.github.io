@@ -13,14 +13,14 @@ It's not really very clear from the [documentation](http://gadflyjl.org/#layers)
 # tested in IJulia notebook
 
 using Gadfly
-#Julia is slow the first time you load Gadfly package AND the first time you plot
+# Julia is slow the first time you load Gadfly package AND the first time you plot
 
 x = [-π:0.1:π]
 y = sin(x)
 w = cos(x)
 
 pi = round(π, 2)
-ticks = [-pi, -pi/2, 0, pi/2, pi]
+ticks = [-pi:pi/2:pi]
 
 p = plot(x=x, y=y, Geom.point, Geom.line, Theme(default_color=color("seagreen")),
             Guide.xticks(ticks=ticks))
