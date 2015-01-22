@@ -10,6 +10,9 @@ It's not really very clear from the [documentation](http://gadflyjl.org/#layers)
 <!-- more -->
 
 ``` julia
+using Gadfly
+#Julia is slow the first time you load Gadfly package AND the first time you plot
+
 x = [-π:0.1:π]
 y = sin(x)
 w = cos(x)
