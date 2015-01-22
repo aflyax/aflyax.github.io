@@ -28,7 +28,7 @@ q = layer(x=x, y=w, Geom.line, Theme(default_color=color("indianred")))
 append!(p.layers, q);
 
 # draw(SVGJS("sin-cos.svg", 7.5inch, 3.25inch), p)
-display(p)    # works as a side effect! (unlike `plot(...)` or just `p`
+display(p)    # works as a side effect! (unlike `plot(...)` or just `p`)
 2+2
 ```
 
