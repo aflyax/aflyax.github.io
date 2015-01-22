@@ -13,7 +13,7 @@ It's not really very clear from the [documentation](http://gadflyjl.org/#layers)
 # tested in IJulia notebook
 
 using Gadfly
-# Julia is slow the first time you load Gadfly package AND the first time you plot
+# the package is slow the first time you load it AND the first time you plot
 
 x = [-π:0.1:π]
 y = sin(x)
