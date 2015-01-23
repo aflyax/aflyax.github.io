@@ -71,7 +71,7 @@ Now we are ready for the kNN function. The function itself uses `Distances` pack
 
 <code data-gist-id="abcbea50f614c8479bc7" data-gist-hide-footer="true"></code>
 
-Distance calculation happens on line 4; lines 7–9 enter the k nearest distances into a dictionary. If `prob=true` was passed, the function returns (lines 13–15) a dictionary with all labels and corresponding probabilities (the frequency of each label among the neighbors). Otherwise, line 11 returns the most frequently encountered label. (`indmax` returns the index of the maximum member of the vector.)
+Distance calculation happens on line 4; lines 7–9 enter the k nearest distances into a dictionary. If `prob=true` was passed, the function returns (lines 13–15) a dictionary with all labels and corresponding probabilities (the frequency of each label among the neighbors). Otherwise, line 11 returns the most frequently encountered label. (`indmax` returns the index of the highest member of the vector.)
 
 That's really the core of the exercise. I also wrote two "wrapper" functions, one that calls `find_kNN()` over a range of datapoints(each compared to a training dataset), and the other that randomly splits the global dataset into training and test datasets over multiple trials and plots the accuracy of the individual trials (in green) and the average accuracy as of the trial (in red). (For the record, I still haven't figured out a good way to have custom labels on a Gadfly plot — I don't really want to use DataFrames for that).
 
