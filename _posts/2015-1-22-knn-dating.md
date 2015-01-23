@@ -39,7 +39,7 @@ Out (first six rows — the "head" — of our data for preview):
 | 6   | 72993 | 10.1417 | 1.03296   | 1       |
 ```
 
-Next, we want to normalize the values to ensure that no dimension enfluences our distance calculation more than others:
+Next, we want to normalize the values to ensure that no dimension influences our distance calculation more than others:
 
 ```julia
 function normalize(input_df::DataFrame, cols::Array{Int})
