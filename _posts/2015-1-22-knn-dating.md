@@ -6,7 +6,7 @@ comments: true
 tags: [julia, machine learning, knn]
 ---
 
-My plan is to work through *Machine Learning in Action* (MLA) by Peter Harrington and "translate" the code from Python to Julia. The first exercise concerns k-nearest-neighbor (kNN) algorithm.
+My plan is to work through [*Machine Learning in Action*](http://www.amazon.com/Machine-Learning-Action-Peter-Harrington/dp/1617290181) (MLA) by Peter Harrington and "translate" the code from Python to Julia. The first exercise concerns k-nearest-neighbor (kNN) algorithm.
 
 <!-- more -->
 
