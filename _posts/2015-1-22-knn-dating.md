@@ -131,4 +131,6 @@ Out:
 `elapsed time: 0.485163728 seconds (216355912 bytes allocated, 45.36% gc time)`
 <object type="image/svg+xml" data="\images\kNN.svg"></object>
 
+(Remember, the first time you import Gadfly package, as well as the first time you plot anything using it, will take a while. If you're benchmarking, run the function a second time.)
+
 Similar [code](http://nbviewer.ipython.org/github/aflyax/Julia/blob/master/machine_learning_in_action/ch%202/dating_kNN_py.ipynb) in Python runs for about 0.95 seconds. (Note: I got some help from StackOverflow gurus to optimize my function a bit. Apparently, list comprehensions slow down Julia quite a bit. Re-writing them as `for` loops sped up my code about twice.)
