@@ -82,7 +82,6 @@ The last two lines call the `plot_probs()`, having it run ten trials (each time 
 using DataFrames, Distances, Gadfly
 
 function mass_kNN(test_array::Matrix, train_array::Matrix, test_labels::Vector, train_labels::Vector, k::Int64)
-    
     count_correct = 0
     for i in 1:size(test_array,1)
         kNN_label = find_kNN(test_array[i,:][:], train_array, train_labels, k = k)
@@ -121,7 +120,6 @@ function plot_probs(input_array::Matrix, test_portion::Float64, cols::Vector, nu
     
     append!(p.layers, q);
     display(p)
-    
 end
 
 norm_array = array(norm_df);
