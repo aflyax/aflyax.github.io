@@ -25,7 +25,7 @@ Compare times:
 
 ``` julia
 n = 3
-@time [ union([a,b]) for i in 1:10^n ]
+@time [ union(a,b) for i in 1:10^n ]
 @time [ unique([a,b]) for i in 1:10^n ];
 ```
 
