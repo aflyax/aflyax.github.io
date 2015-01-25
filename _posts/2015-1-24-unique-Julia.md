@@ -20,3 +20,18 @@ Out:
 [3,5,4,8,0,9,10,2,7,6]
 [0,2,3,4,5,6,7,8,9,10]
 ```
+
+Compare times:
+
+``` julia
+n = 3
+@time [ union([a,b]) for i in 1:10^n ]
+@time [ unique([a,b]) for i in 1:10^n ];
+```
+
+Out:
+
+```
+elapsed time: 0.007959665 seconds (2335432 bytes allocated)
+elapsed time: 0.002394242 seconds (1983432 bytes allocated)
+```
