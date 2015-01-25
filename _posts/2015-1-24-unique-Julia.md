@@ -3,7 +3,7 @@ layout: post
 title: Use unique( ) to drop duplicates
 permalink: unique-Julia
 comments: true
-tags: [julia, arrays, sorting, duplicates]
+tags: [julia, arrays, sorting, duplicates, syntax]
 ---
 
 In a [recent post](/drop-duplicates/), I reviewed how you can use `union()` to get unique members out of a set. A faster way to do that is to use `unique()` function:
