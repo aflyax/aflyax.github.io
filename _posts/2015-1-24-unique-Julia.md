@@ -8,13 +8,7 @@ tags: [julia, arrays, sorting, duplicates, syntax]
 
 In a [recent post](/drop-duplicates/), I reviewed how you can use `union()` to get unique members out of a set. A faster way to do that is to use `unique()` function:
 
-```julia
-println([a; b])
-println(unique(a))
-println(unique(b))
-println(unique([a,b]))
-println(sort(unique([a,b])))
-```
+<code data-gist-id="12c238f3da8d2875b3f2" data-gist-hide-footer="true" data-gist-hide-line-numbers="true"></code>
 
 Out:
 
