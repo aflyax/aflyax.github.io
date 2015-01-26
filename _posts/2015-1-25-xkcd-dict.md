@@ -6,7 +6,7 @@ comments: true
 tags: [julia, python, dictionaries, functions]
 ---
 
-In [Better Way to Read the News]("http://interactivepython.org/runestone/static/everyday/2013/11/1_news.html"), a chapter from the online version of *Everyday Python* book, we find a function that implements the map from thix XKCD cartoon:
+In [Better Way to Read the News](http://interactivepython.org/runestone/static/everyday/2013/11/1_news.html), a chapter from the online version of *Everyday Python* book, we find a function that implements the map from thix XKCD cartoon:
 
 ![](http://imgs.xkcd.com/comics/substitutions.png)
 
