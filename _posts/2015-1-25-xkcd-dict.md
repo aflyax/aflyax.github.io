@@ -32,7 +32,7 @@ elf-lord
 python
 ```
 
-Translating the following function from Python to Julia was quite easy.
+Translating the following function from Python to Julia was quite easy. It's not just an exercise of looking up a difference in syntax, but also in using functional vs. object-oriented dot-notation.
 
 Python:
 
