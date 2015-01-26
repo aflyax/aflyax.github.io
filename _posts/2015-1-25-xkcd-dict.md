@@ -3,7 +3,7 @@ layout: post
 title: XKCD → Python → Julia
 permalink: xkcd-Julia
 comments: true
-tags: [julia, python, dictionaries, functions]
+tags: [julia, python, dictionaries, functions, index]
 ---
 
 In [Better Way to Read the News](http://interactivepython.org/runestone/static/everyday/2013/11/1_news.html), a chapter from the online version of *Everyday Python* book, we find a function that implements the map from thix XKCD cartoon:
