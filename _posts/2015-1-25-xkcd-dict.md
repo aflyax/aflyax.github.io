@@ -10,6 +10,8 @@ In [Better Way to Read the News](http://interactivepython.org/runestone/static/e
 
 ![](http://imgs.xkcd.com/comics/substitutions.png)
 
+<!-- more -->
+
 Original Python code:
 
 ``` python
