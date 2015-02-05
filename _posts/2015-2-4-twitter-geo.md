@@ -133,4 +133,4 @@ Zoom in on the US:
 
 ![](/images/us_yall.png)
 
-Next possible steps: 1) actually plot these on a map, 2) do statistics to see if red and blue dots are statistically separable in the south.
+Next possible steps: 1) plot these on a map, 2) do statistics to see if red and blue dots are statistically separable in the south.
