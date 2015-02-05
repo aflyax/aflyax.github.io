@@ -18,7 +18,7 @@ Write this in your favorite text editor (Sublime Text for me) and save as `twitt
 
 <code data-gist-id="80a56dd7fd1cb3c9a58f" data-gist-hide-footer="true"></code>
 
-To get Twitter API credentials for lines 7–10, go to https://apps.twitter.com/ (see Step 1 [here](http://adilmoujahid.com/posts/2014/07/twitter-analytics/) for full instructions).
+To get Twitter API credentials for lines 7–10, go to https://apps.twitter.com (see Step 1 [here](http://adilmoujahid.com/posts/2014/07/twitter-analytics/) for full instructions).
 
 If you run your new script...
 
@@ -132,3 +132,5 @@ You can see that the *y'alls* are concentrated in the Deep South (extending as w
 Zoom in on the US:
 
 ![](/images/us_yall.png)
+
+Next possible steps: 1) actually plot these on a map, 2) do statistics to see if red and blue dots are statistically separable in the south.
