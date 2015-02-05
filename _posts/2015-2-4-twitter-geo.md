@@ -132,5 +132,6 @@ You can see that the *y'alls* are concentrated in the Deep South (extending as w
 Zoom in on the US:
 
 ![](/images/us_yall.png)
+(interactive Bokeh plot [here](/images/yall.html))
 
 Next possible steps: 1) plot these on a map, 2) do statistics to see if red and blue dots are statistically separable on the East Coast.
