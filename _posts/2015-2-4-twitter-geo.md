@@ -8,13 +8,13 @@ tags: [python, twitter, plotting, bokeh, maps]
 
 ![](http://imgs.xkcd.com/comics/heatmap.png "the only appropriate xkcd in this context")
 
-That is a fancy title. What I actually did was try to map incidence of specific words spoken in tweets. For fun, I chose *y'all* and *you guys*, expecting to see the southerners in the US y'alling and English-speakers elsewhere youguying. Most of the code was adopted (in some cases, unashamedly copy-pasted) from elsewhere on the web, in particular from [Introduction to Text Mining using Twitter Streaming API and Python](http://adilmoujahid.com/posts/2014/07/twitter-analytics/) by Adil Moujahid.
+That is a fancy title. What I actually did was try to map incidence of specific words spoken in tweets. For fun, I chose *y'all* and *you guys*, expecting to see the southerners in the US y'alling and English-speakers elsewhere youguying.
 
 <!-- more -->
 
 First, we need to write a script that will save a tweet json to a text file every time someone says our keywords. Then we will extract geolocation data from each tweet, classify the text as containing either *y'all* or *you guys* and plot the data. The reason it's better to obtain streaming tweets is that one can get more information that way. Unfortunately, only a small proportion of tweets (~150 out of 6000 on my first try) have geolocation data; so, if we are limited to 100-500 tweets (from using REST API), that will let us have only a few geo-tagged data points to plot.
 
-Write this in your favorite text editor (Sublime Text for me) and save as `twitter_streaming.py`:
+Write this in your favorite text editor (Sublime Text for me) and save as `twitter_streaming.py` (adopted from [Introduction to Text Mining using Twitter Streaming API and Python](http://adilmoujahid.com/posts/2014/07/twitter-analytics/) by Adil Moujahid):
 
 <code data-gist-id="80a56dd7fd1cb3c9a58f" data-gist-hide-footer="true"></code>
 
