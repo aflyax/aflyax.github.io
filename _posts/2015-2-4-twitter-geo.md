@@ -51,7 +51,7 @@ from bokeh.plotting import figure, output_notebook, show, legend
 output_notebook()
 ```
 
-As you can see, I'll be using Bokeh to plot. Normally I use matplotlib and seaborn for a quick plot, but in this case I want to be able to interact with a plot (e.g., zoom in to look at the data points more closely).
+I'll be using `Bokeh` to plot. Normally I use `matplotlib` and `seaborn` for a quick plot, but in this case I want to be able to interact with a plot (e.g., zoom in to look at the data points more closely).
 
 These functions load the jsons, populate a `pandas DataFrame` to store the text and coordinates from each tweet, and populate an index column (of Boolean values) for each key:
 
