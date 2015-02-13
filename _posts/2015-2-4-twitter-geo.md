@@ -95,7 +95,7 @@ Now you can load the tweets, even as your python script is saving more of them i
 ``` python
 geo_tweets = pop_keys(pop_tweets('yall.txt'), ["y'all", "yall", "you guys"])
 yall_tweets = pop_keys(pop_tweets('yall_5.txt'), ["y'all", "yall", "you guys"])
-geo_tweets.append(yall_tweets)
+geo_tweets = pd.concat([geo_tweets, yall_tweets], ignore_index=True)
 
 print('total geo_tweets:', len(geo_tweets))
 print("y'alls:", len(geo_tweets[geo_tweets["y'all"]]))
