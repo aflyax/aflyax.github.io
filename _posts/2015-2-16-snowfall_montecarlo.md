@@ -14,6 +14,8 @@ This morning, a discussion on Facebook:
 >**JC:** Do you notice how 6 out of the 10 snowiest Boston winters are from the past 25 years? This might be a symptom of climate change.<br>
 >**AF:** Your intuition is that if high snowfalls are randomly distributed, it's unlikely that 6/10 highest would be concentrated in the last 25 out of 115 years. I ask: how unlikely?
 
+<!-- more -->
+
 Rather than calculating the probability *a priori*, I decided to run a little Monte Carlo simulation. I am asking how likely it is for 6 out of 10 highest snowfalls to fall within the last 25 years out of 115. I run 1000 trials, each trial being a set 115 numbers. The number of trials in which 6/10 highest numbers are among the last 25 in the set is the datapoint for that run. Then I perform 1000 runs and calculate the converging average of "positive" trials per 1000.
 
 Julia code:
