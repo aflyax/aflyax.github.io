@@ -6,7 +6,7 @@ comments: true
 tags: [javascript, google, plotting, maps, dataviz]
 ---
 
-In this post, I am not writing code in Python or Julia (even though it was inspired by [these instructions](http://www.chrisalbon.com/map-your-google-location-history/) that use Python code). I will show how to use online JavaScript-based tool to plot your Google Maps location in a heatmap form. You can use it even if you don't know how to code at all.
+In this post, I am not writing code in Python or Julia (even though it was inspired by [these instructions](http://www.chrisalbon.com/map-your-google-location-history/) that use Python code). I will show how to use online JavaScript-based tool to plot your Google Maps locations in a heatmap form. You can use it even if you don't know how to code at all.
 
 It is called [Location History Visualizer](https://theopolis.me/location-history-visualizer/); the instructions are on the page once you open it. You can either use:
 
@@ -15,7 +15,7 @@ It is called [Location History Visualizer](https://theopolis.me/location-history
 
 After obtaining either file, just drag it onto the Visualizer page.
 
-The heatmap of your travels (as recorded through Google Maps history) will be displayed. I have no space orientation at all, so I use GPS on my phone to go to a local grocery store. Therefore, I have a lot of Google Maps data.
+The heatmap of your travels (as recorded through Google Maps history) will be displayed. I have no spatial orientation at all, so I use GPS on my phone to go to a local grocery store. Therefore, I have a lot of Google Maps data.
 
 Boston:
 
