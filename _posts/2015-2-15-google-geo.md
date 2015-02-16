@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Create a heatmap of your Google Maps locations
+title: Create a heatmap of your Google Maps trips
 permalink: google-geo
 comments: true
 tags: [javascript, google, plotting, maps, dataviz]
