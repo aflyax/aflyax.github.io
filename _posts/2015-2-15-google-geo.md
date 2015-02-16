@@ -1,7 +1,7 @@
 ---
 layout: post
-title: Linguistic geolocating with Twitter and Python
-permalink: twitter-geo
+title: Create a heatmap of your Google Maps locations
+permalink: google-geo
 comments: true
 tags: [javascript, google, plotting, maps, dataviz]
 ---
