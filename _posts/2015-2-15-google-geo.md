@@ -29,4 +29,4 @@ It also shows my recent trip from Texas to Chicago:
 
 ![](/images/us_travel_heatmap.png)
 
-The controls are on the left bottom. 
+The controls are on the left bottom. I think this example shows have JS is still the king of data visualization.
