@@ -3,7 +3,7 @@ layout: post
 title: Linguistic geolocating with Twitter and Python
 permalink: twitter-geo
 comments: true
-tags: [python, twitter, plotting, bokeh, maps]
+tags: [python, twitter, plotting, bokeh, maps, dataviz]
 ---
 
 ![](http://imgs.xkcd.com/comics/heatmap.png "the only appropriate xkcd in this context")
