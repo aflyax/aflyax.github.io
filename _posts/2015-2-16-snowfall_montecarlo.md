@@ -65,7 +65,7 @@ sort_ix = sortperm(falls, rev=true) # create indexes of snowfalls, sorted in rev
 set_default_plot_size(28cm, 15cm)
 
 # layer for plotting all points:
-all_p = layer(x=yrs, y=falls, Geom.line(), Geom.point(), Theme(default_color=color("gray")))
+all_p = layer(x=yrs, y=falls, Geom.line(), Geom.point(), Theme(default_color=color("#BCBCBC")))
 
 #layer for plotting the maximum 10 points
 max_p = plot(x=sort_ix[1:10], y=falls[sort_ix][1:10], Geom.point(), Theme(default_color=color("indianred")),
