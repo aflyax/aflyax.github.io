@@ -15,7 +15,7 @@ It is called [Location History Visualizer](https://theopolis.me/location-history
 
 After obtaining either file, just drag it onto the Visualizer page.
 
-The heatmap of your travels (as recorded through Google Maps history) will be displayed. I have no space orientation at all, so I use GPS on my phone to travel to a local grocery store. Therefore, I have a lot of Google Maps data.
+The heatmap of your travels (as recorded through Google Maps history) will be displayed. I have no space orientation at all, so I use GPS on my phone to go to a local grocery store. Therefore, I have a lot of Google Maps data.
 
 Boston:
 
