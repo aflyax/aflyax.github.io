@@ -148,7 +148,8 @@ println("Final avg prob: ", signif(avg_prob[end]*100, 2), " percent")
 
 Out:
 
-`Final avg prob: 0.068 percent`
+```Final avg prob: 0.068 percent````
+
 <object type="image/svg+xml" data="\images\snowfalls_probs.svg"></object>
 
 My friend might be right!
