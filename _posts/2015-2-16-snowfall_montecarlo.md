@@ -120,7 +120,7 @@ Now let's do 1000 runs and calculate the converging average (expected to be clos
 ``` julia
 function find_prob(num_repeats)
     num_highs = find_highs(num_repeats)
-    return length(find(num_highs.>=6)) / num_years
+    return length(find(num_highs.>=6)) / num_repeats
 end
 
 num_trials = 1000
