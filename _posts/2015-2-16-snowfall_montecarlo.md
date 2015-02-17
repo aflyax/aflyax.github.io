@@ -102,11 +102,16 @@ function find_highs(tot_num; num_years=115, max_fall=110, last_years=25, high_nu
     return num_highs
 end
 
-println("chance of getting at least 6/10 max snowfalls in the last 25 years: ",
-    (length(find(num_highs.>=6)) / num_years)*100, " percent")
-plot(x=1:10000, y=find_highs(10000),
-    Guide.ylabel("number of max snowfalls in the last 25/115 years"), # label for y-axis
+num_highs = find_highs(10000)
+p = plot(x=1:10000, y=num_highs,
+    Guide.ylabel("max / last 25 years"), # label for y-axis
     Guide.xlabel("trials"))  # label for x-axis
+
+draw(SVGJS("snowfalls_run.svg", 7.5inch, 3.25inch), p)
+display(p)
+
+println("chance of getting at least 6/10 max snowfalls in the last 25 years: ",
+    (length(find(num_highs.>=6)) / 10000)*100, " percent")
 ```
 
 Out: <br>
@@ -150,7 +155,7 @@ println("Final avg prob: ", signif(avg_prob[end]*100, 2), " percent")
 
 Out:
 
-```Final avg prob: 0.068 percent````
+```Final avg prob: 0.69 percent````
 
 <object type="image/svg+xml" data="\images\snowfalls_probs.svg"></object>
 
