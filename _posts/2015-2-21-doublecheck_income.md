@@ -67,8 +67,8 @@ mpld3.display() # to make interactive graph
 
 ![](/images/income.png)
 
-**Conclusion:** While it is true that the lowest two fifths seem to have stagnated since 1970, the third and fourth fifth (and, of course, the top fifth) increased their income. (Although all groups, including the top 5%, seem to have stagnated since 2000.)
+**Conclusion:** While it is true that the lowest two fifths seem to have stagnated since 1970, the third and the fourth fifths (and, of course, the top fifth) increased their income. (Although all groups, including the top 5%, seem to have stagnated since 2000.)
 
-This is a slightly different story from "after 1980, only the top 1% saw their incomes rise". (It is also beside the point that neither NPR's nor the above graph show mobility. I.e., the same person in 1970 and today is unlikely to belong to the same "income class".)
+This is a slightly different story from "after 1980, only the top 1% saw their incomes rise". (It is also beside the point that neither NPR's nor the above graph show mobility. I.e., the same person in 1970 and today is unlikely to belong to the same "income class". These data also do not include any information on the immigration or unemployment.)
 
 Notebook for this code is [here](http://nbviewer.ipython.org/github/aflyax/Python/blob/master/income/income.ipynb).
