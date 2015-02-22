@@ -3,7 +3,7 @@ layout: post
 title: Double-checking NPR's income data
 permalink: doublecheck-income
 comments: true
-tags: [python, pandas, income, economics]
+tags: [python, pandas, data exploration, income, economics]
 ---
 
 According to [NPR.org](http://www.npr.org/blogs/money/2015/02/11/384988128/the-fall-and-rise-of-u-s-inequality-in-2-graphs), "After 1980, only the top 1% saw their incomes rise." [Flowing Data](http://flowingdata.com/2015/02/20/top-1-earners-versus-bottom-90/) quoted this figure:
