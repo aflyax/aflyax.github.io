@@ -67,7 +67,7 @@ mpld3.display() # to make interactive graph
 
 ![](/images/income.png)
 
-**Conclusion:** While it is true that the lowest fifths seem to have stagnated since 1970, the second, the third, and the fourth fifths (and, of course, the top fifth) increased their income. (Although all groups, including the top 5%, seem to have stagnated since 2000.)
+**Conclusion:** While it is true that the lowest fifth seems to have stagnated since 1970, the second, the third, and the fourth fifths (and, of course, the top fifth) increased their income. (Although all groups, including the top 5%, seem to have stagnated since 2000.)
 
 This is a slightly different story from "after 1980, only the top 1% saw their incomes rise". (It is also beside the point that neither NPR's nor the above graph show mobility. I.e., the same person in 1970 and today is unlikely to belong to the same "income class". These data also do not include any information on the immigration or unemployment.)
 
