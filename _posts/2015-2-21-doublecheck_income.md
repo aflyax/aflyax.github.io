@@ -67,8 +67,20 @@ mpld3.display() # to make interactive graph
 
 ![](/images/income.png)
 
-**Conclusion:** While it is true that the lowest fifth seems to have stagnated since 1970, the second, the third, and the fourth fifths (and, of course, the top fifth) increased their income. (Although all groups, including the top 5%, seem to have stagnated since 2000.)
+``` python
+income_df[income_df.year.isin([1970, 2000, 2013])]
+```
 
-This is a slightly different story from "after 1980, only the top 1% saw their incomes rise". (It is also beside the point that neither NPR's nor the above graph show mobility. I.e., the same person in 1970 and today is unlikely to belong to the same "income class". These data also do not include any information on the immigration or unemployment.)
+| year | lowest fifth | second fifth | third fifth | fourth fifth | top fifth | top 5% |
+|------|--------------|--------------|-------------|--------------|-----------|--------|
+| 1970 | 16404        | 36271        | 52445       | 70744        | 121652    | 185243 |
+|2000  |  19103 |  43678 |  68646 |  101170 | 212266 | 376138 |
+| 2013 | 16109        | 39514        | 63916       | 97207        | 206687    | 358722 |
+
+**Conclusion:** While it is true that the lowest fifth stagnated since 1970, the second, the third, and the fourth fifths (and, of course, the top fifth) increased their income. (Although all groups, including the top 5%, seem to have stagnated since 2000.)
+
+
+
+This is a slightly different story from "after 1980, only the top 1% saw their incomes rise". (It is also beside the point that neither NPR's nor the above graph show mobility. I.e., the same person in 1970 and today is unlikely to belong to the same "income class". These data also do not include any information on immigration or unemployment.)
 
 Notebook for this code is [here](http://nbviewer.ipython.org/github/aflyax/Python/blob/master/income/income.ipynb).
