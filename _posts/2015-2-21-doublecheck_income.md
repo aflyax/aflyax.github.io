@@ -10,7 +10,7 @@ According to [NPR.org](http://www.npr.org/blogs/money/2015/02/11/384988128/the-f
 
 ![](http://flowingdata.com/wp-content/uploads/2015/02/Earners-620x560.png)
 
-You can see the trend more clearly here (note that the y-axis shows growth in year X vs. 1917; so, it's clear that income growth stagnated for the bottom 90% in the last 40 years).
+You can see the trend more clearly here (note that the y-axis shows growth in year X vs. 1917; so, it's clear that income growth stagnated for the bottom 90% in the last 40 years):
 
 ![](/images/income_growth.png)
 
