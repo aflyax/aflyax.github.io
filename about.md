@@ -14,3 +14,5 @@ Recently, I decided to switch tracks from academic Neuroscience and move into bu
 In this blog, I will attempt to (sparsely) report on my learning process by blogging about some interesting ideas I encounter.
 
 [resume](/resume.pdf)
+
+(The image of two neurons was taken from the website of [Michael Hausser Lab](http://www.dendrites.org/).)
