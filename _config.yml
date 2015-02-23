@@ -1,6 +1,6 @@
 name: '{data dendrites}'
 # url: 'aflyax.github.io/'
-description: 'discovering data science with Julia and Python'
+description: 'exploring data science with Python et al.'
 
 exclude: [Gemfile, Gemfile.lock, README.md]
 markdown: redcarpet
