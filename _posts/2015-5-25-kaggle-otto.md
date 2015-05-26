@@ -22,6 +22,6 @@ As I mentioned, I plan to talk in some detail about the methods I used over the 
 
 In terms of Kaggle competitions, my plan is next to form a local team and try out collective hand on the [CrowdFlower Search Relevance](https://www.kaggle.com/c/crowdflower-search-relevance) challenge.
 
-I would like to thank Chicago Python ([ChiPy](http://www.chipy.org/)) User Group for allowing me to participate in a mentorship program, where I received a lot of advice and guidance from [Eric Meschke](https://www.linkedin.com/in/emeschke), a local Machine Learning enthusiast working on Chicago's Mercantile Exchange (Eric and I are forming a Machine Learning discussion group and will be working together on Kaggle challenges as a team; so, if you're in Chicago area and would like to join, let us know).
+I would like to thank Chicago Python ([ChiPy](http://www.chipy.org/)) User Group for allowing me to participate in a mentorship program, where I received a lot of advice and guidance from [Eric Meschke](https://www.linkedin.com/in/emeschke), a local Machine Learning enthusiast working at Chicago's Mercantile Exchange (Eric and I are forming a Machine Learning discussion group and will be working together on Kaggle challenges as a team with a few additional members; so, if you're in Chicago area and would like to join, let us know).
 
 ![](/images/nolearn_otto.png "nolearn learning")
