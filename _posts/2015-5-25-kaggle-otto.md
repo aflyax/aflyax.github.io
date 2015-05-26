@@ -14,7 +14,7 @@ Mainly, I used a combination of scikit-learn's [Gradient Boosting Classifier](ht
 
 The final step was combining the results from GBC and nolearn. After printing out a confusion matrix for each algorithm, I weighted the contribution of each algorithm's prediction accordingly.
 
-My final score (log-loss) was 0.42671 on the public leaderboard and 0.42912 on the private one. Throughout the competition, I moved from being in the bottom 25% to top 10% of the leaderboard (at one point I was in the top 3%, but in the final few days a rush of new submission pushed me down a bit).
+My final score (log-loss) was 0.42671 on the public leaderboard and 0.42912 on the private one. Throughout the competition, I moved from being in the bottom 25% to top 10% of the leaderboard (at one point I was in the top 3%, but in the final few days a rush of new submissions pushed me down a bit).
 
 I learned quite a bit from this experience and recommend participating in Kaggle challenges to anyone interested in both practicing machine learning on real-world datasets (with the obvious caveats about cleaning data, importance — or not — of marginal improvement, etc.) and learning the underlying theory (I will post some links on the open-source resources that helped me throughout this competition as well).
 
