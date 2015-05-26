@@ -6,7 +6,7 @@ comments: true
 tags: [python, machine learning, kaggle, deep learning, random forests]
 ---
 
-![](http://imgs.xkcd.com/comics/donald_knuth.png "I do prefer Julia's and Matlab's 1-based indexing. Oh well...")
+![](http://joelgrus.com/wp-content/uploads/2013/06/VennDiagram2.png "where do you fit?")
 
 I have recently participated in Kaggle's [Otto Challenge](https://www.kaggle.com/c/otto-group-product-classification-challenge) and got in the top 10% on the leaderboard. It was a fairly standard classification challenge, where a class of a product was predicted based on 93 numerical features. I will gradually write a couple posts about the methods I used, but here is a brief summary:
 
