@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Hierarchy Worlds – Fast Throbbing Inner Threads</title>
+  <style>
+    :root { --bg: #000000; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      font-family: system-ui, sans-serif;
+    }
+    svg {
+      width: 600px;
+      height: 900px;
+      overflow: visible;
+    }
+  </style>
+</head>
+<body>
+  <svg id="scene" viewBox="0 0 360 850" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Radial gradients for energy orb appearance -->
+      <radialGradient id="sphere-black" cx="50%" cy="50%">
+        <stop offset="0%" style="stop-color:rgb(80,80,80);stop-opacity:0.3" />
+        <stop offset="40%" style="stop-color:rgb(30,30,30);stop-opacity:0.5" />
+        <stop offset="80%" style="stop-color:rgb(0,0,0);stop-opacity:0.7" />
+        <stop offset="100%" style="stop-color:rgb(0,0,0);stop-opacity:0.2" />
+      </radialGradient>
+      <radialGradient id="sphere-white" cx="50%" cy="50%">
+        <stop offset="0%" style="stop-color:rgb(255,255,255);stop-opacity:0.4" />
+        <stop offset="40%" style="stop-color:rgb(240,240,240);stop-opacity:0.6" />
+        <stop offset="80%" style="stop-color:rgb(200,200,200);stop-opacity:0.8" />
+        <stop offset="100%" style="stop-color:rgb(180,180,180);stop-opacity:0.3" />
+      </radialGradient>
+      <radialGradient id="sphere-red" cx="50%" cy="50%">
+        <stop offset="0%" style="stop-color:rgb(255,150,150);stop-opacity:0.3" />
+        <stop offset="40%" style="stop-color:rgb(255,80,80);stop-opacity:0.5" />
+        <stop offset="80%" style="stop-color:rgb(255,0,0);stop-opacity:0.7" />
+        <stop offset="100%" style="stop-color:rgb(200,0,0);stop-opacity:0.2" />
+      </radialGradient>
+      <radialGradient id="sphere-green" cx="50%" cy="50%">
+        <stop offset="0%" style="stop-color:rgb(150,255,150);stop-opacity:0.3" />
+        <stop offset="40%" style="stop-color:rgb(80,220,80);stop-opacity:0.5" />
+        <stop offset="80%" style="stop-color:rgb(0,180,0);stop-opacity:0.7" />
+        <stop offset="100%" style="stop-color:rgb(0,120,0);stop-opacity:0.2" />
+      </radialGradient>
+      <radialGradient id="sphere-blue" cx="50%" cy="50%">
+        <stop offset="0%" style="stop-color:rgb(150,150,255);stop-opacity:0.3" />
+        <stop offset="40%" style="stop-color:rgb(80,80,255);stop-opacity:0.5" />
+        <stop offset="80%" style="stop-color:rgb(0,0,255);stop-opacity:0.7" />
+        <stop offset="100%" style="stop-color:rgb(0,0,200);stop-opacity:0.2" />
+      </radialGradient>
+      
+      <!-- Blur filters for energy glow -->
+      <filter id="glow">
+        <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+        <feMerge>
+          <feMergeNode in="coloredBlur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+    
+    <path id="thread-energy" d="M180 90 L180 270 L180 450 L180 630 L180 810"
+          stroke="rgba(255,215,0,0.8)" stroke-width="0.3" fill="none" stroke-linecap="round" filter="url(#glow)" opacity="0" />
+    <path id="thread-glow" d="M180 90 L180 270 L180 450 L180 630 L180 810"
+          stroke="rgba(255,255,180,1)" stroke-width="0.3" fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)" opacity="0" />
+
+    <line id="line-0" x1="180" y1="90" x2="180" y2="270" stroke="rgba(255,215,0,0.4)" stroke-width="0.3" stroke-linecap="round" filter="url(#glow)" style="display:none;" opacity="0" />
+    <line id="line-1" x1="180" y1="270" x2="180" y2="450" stroke="rgba(255,215,0,0.4)" stroke-width="0.3" stroke-linecap="round" filter="url(#glow)" opacity="0" />
+    <line id="line-2" x1="180" y1="450" x2="180" y2="630" stroke="rgba(255,215,0,0.4)" stroke-width="0.3" stroke-linecap="round" filter="url(#glow)" opacity="0" />
+    <line id="line-3" x1="180" y1="630" x2="180" y2="810" stroke="rgba(255,215,0,0.4)" stroke-width="0.3" stroke-linecap="round" filter="url(#glow)" opacity="0" />
+
+    <circle id="node-0" cx="180" cy="90"  r="100" fill="url(#sphere-black)" stroke="none" filter="url(#glow)" style="display:none;" opacity="0" />
+    <circle id="node-1" cx="180" cy="270" r="100" fill="url(#sphere-white)" stroke="none" filter="url(#glow)" opacity="0" />
+    <circle id="node-2" cx="180" cy="450" r="100" fill="url(#sphere-red)"   stroke="none" filter="url(#glow)" opacity="0" />
+    <circle id="node-3" cx="180" cy="630" r="100" fill="url(#sphere-green)" stroke="none" filter="url(#glow)" opacity="0" />
+    <circle id="node-4" cx="180" cy="810" r="100" fill="url(#sphere-blue)"  stroke="none" filter="url(#glow)" opacity="0" />
+  </svg>
+
+  <script>
+    const svg = document.getElementById("scene");
+    const centerX = 180;
+    const worldRadius = 100;
+    const baseY = [90, 270, 450, 630, 810];
+
+    // make big circles float around with more freedom in 3D
+    const floatAmpsX = [140, 150, 135, 145, 142]; // reduced so they use full screen width
+    const floatAmpsY = [60, 70, 55, 65, 58]; // keep vertical movement smaller to maintain hierarchy
+    const floatAmpsZ = [0.6, 0.7, 0.65, 0.7, 0.68]; // depth movement (0.7 = 70% scale change)
+    const floatFreqsX = [0.3, 0.35, 0.32, 0.34, 0.36];
+    const floatFreqsY = [0.32, 0.37, 0.33, 0.35, 0.38];
+    const floatFreqsZ = [0.25, 0.28, 0.26, 0.27, 0.29]; // slower depth changes
+    const floatPhasesX = [0, 0.5, 1.2, 2.0, 2.8];
+    const floatPhasesY = [0.3, 0.8, 1.5, 2.3, 3.1];
+    const floatPhasesZ = [0.6, 1.2, 2.0, 2.8, 3.5];
+
+    const worldNodes = baseY.map((_, i) => document.getElementById(`node-${i}`));
+    
+    // Create pulsating rings for each orb
+    const pulsateRings = [];
+    const gradientIds = ['sphere-black', 'sphere-white', 'sphere-red', 'sphere-green', 'sphere-blue'];
+    worldNodes.forEach((node, idx) => {
+      if (node.style.display === 'none') {
+        pulsateRings.push(null);
+        return;
+      }
+      
+      const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      ring.setAttribute("cx", node.getAttribute("cx"));
+      ring.setAttribute("cy", node.getAttribute("cy"));
+      ring.setAttribute("r", worldRadius);
+      ring.setAttribute("fill", `url(#${gradientIds[idx]})`);
+      ring.setAttribute("stroke", "none");
+      ring.setAttribute("filter", "url(#glow)");
+      ring.setAttribute("opacity", "0");
+      svg.insertBefore(ring, node); // Insert before the main orb so it appears behind
+      
+      pulsateRings.push({
+        el: ring,
+        phase: Math.random() * Math.PI * 2, // random starting phase
+        duration: 2.5 + Math.random() * 1.0 // 2.5-3.5 seconds per pulse
+      });
+    });
+    
+    const worldLines = [
+      document.getElementById("line-0"),
+      document.getElementById("line-1"),
+      document.getElementById("line-2"),
+      document.getElementById("line-3"),
+    ];
+    
+    // Add flicker state for hierarchical lines
+    const worldLineStates = worldLines.map(() => ({
+      visible: false,
+      nextChange: Math.random() * 1.5,
+    }));
+    
+    const threadEnergy = document.getElementById("thread-energy");
+    const threadGlow   = document.getElementById("thread-glow");
+    
+    // Add flicker state for main thread paths
+    const mainThreadState = {
+      visible: false,
+      nextChange: Math.random() * 1.5
+    };
+
+    const treePositions = [
+      {x: 0,     y: -0.85},
+      {x: 0.45,  y: -0.55},
+      {x: -0.45, y: -0.55},
+      {x: 0.55,  y: -0.15},
+      {x: -0.55, y: -0.15},
+      {x: 0,     y: 0.05},
+      {x: 0.45,  y: 0.35},
+      {x: -0.45, y: 0.35},
+      {x: 0,     y: 0.62},
+      {x: 0,     y: 0.88},
+    ];
+    const TREE_SCALE = worldRadius * 0.78;
+
+    const worldColors = [
+      "rgb(0,0,0)",
+      "rgb(255,255,255)",
+      "rgb(255,0,0)",
+      "rgb(0,128,0)",
+      "rgb(0,0,255)"
+    ];
+
+    function makeShades(rgbStr, count) {
+      const m = rgbStr.match(/rgb\((\d+),(\d+),(\d+)\)/);
+      const r = +m[1], g = +m[2], b = +m[3];
+      const shades = [];
+      for (let i = 0; i < count; i++) {
+        const t = 0.25 + (i / (count - 1)) * 0.75;
+        const rs = Math.round(r * t + 255 * (1 - t) * 0.03);
+        const gs = Math.round(g * t + 255 * (1 - t) * 0.03);
+        const bs = Math.round(b * t + 255 * (1 - t) * 0.03);
+        shades.push(`rgb(${rs},${gs},${bs})`);
+      }
+      return shades;
+    }
+
+    const INNER_COUNT = 10;
+    const INNER_R = 10;
+    const innerWorlds = [];
+    const darkPaths = [];
+    const connectionGroups = []; // for internal threads
+    
+    const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+    svg.insertBefore(defs, svg.firstChild.nextSibling);
+
+    // Store independent black balls (from world 0) separately
+    const independentBlackBalls = [];
+
+    baseY.forEach((y, worldIdx) => {
+      // radial dark path
+      const dark = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      dark.setAttribute("fill", "none");
+      dark.setAttribute("stroke", "rgba(0,0,0,0.9)");
+      dark.setAttribute("stroke-width", "0.3");
+      dark.setAttribute("stroke-linecap", "round");
+      svg.insertBefore(dark, threadEnergy);
+      darkPaths.push(dark);
+
+      // group of internal connection lines
+      const group = [];
+      const shades = makeShades(worldColors[worldIdx], INNER_COUNT);
+      const balls = [];
+
+      treePositions.forEach((p, i) => {
+        // Create gradient for this small ball - energy orb style
+        const gradId = `sphere-small-${worldIdx}-${i}`;
+        const grad = document.createElementNS("http://www.w3.org/2000/svg", "radialGradient");
+        grad.setAttribute("id", gradId);
+        grad.setAttribute("cx", "50%");
+        grad.setAttribute("cy", "50%");
+        
+        // For black balls (worldIdx 0), use dim yellow instead
+        let baseColor = shades[i];
+        if (worldIdx === 0) {
+          baseColor = "rgb(100,80,0)"; // dim yellow
+        }
+        
+        const m = baseColor.match(/rgb\((\d+),(\d+),(\d+)\)/);
+        const r = +m[1], g = +m[2], b = +m[3];
+        
+        // Bright center (very translucent)
+        const stop1 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+        stop1.setAttribute("offset", "0%");
+        const hr = Math.min(255, r + 100);
+        const hg = Math.min(255, g + 100);
+        const hb = Math.min(255, b + 100);
+        stop1.setAttribute("style", `stop-color:rgb(${hr},${hg},${hb});stop-opacity:0.3`);
+        
+        // Mid color
+        const stop2 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+        stop2.setAttribute("offset", "40%");
+        stop2.setAttribute("style", `stop-color:${baseColor};stop-opacity:0.5`);
+        
+        // Edge color (more opaque)
+        const stop3 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+        stop3.setAttribute("offset", "80%");
+        const er = Math.floor(r * 1.1);
+        const eg = Math.floor(g * 1.1);
+        const eb = Math.floor(b * 1.1);
+        stop3.setAttribute("style", `stop-color:rgb(${er},${eg},${eb});stop-opacity:0.7`);
+        
+        // Outer fade
+        const stop4 = document.createElementNS("http://www.w3.org/2000/svg", "stop");
+        stop4.setAttribute("offset", "100%");
+        stop4.setAttribute("style", `stop-color:${baseColor};stop-opacity:0.2`);
+        
+        grad.appendChild(stop1);
+        grad.appendChild(stop2);
+        grad.appendChild(stop3);
+        grad.appendChild(stop4);
+        defs.appendChild(grad);
+        
+        const c = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        const bx = centerX + p.x * TREE_SCALE;
+        const by = y + p.y * TREE_SCALE;
+        c.setAttribute("cx", bx);
+        c.setAttribute("cy", by);
+        c.setAttribute("r", INNER_R);
+        c.setAttribute("fill", `url(#${gradId})`);
+        c.setAttribute("data-base-fill", shades[i]);
+        c.setAttribute("stroke", "none");
+        c.setAttribute("filter", "url(#glow)");
+        c.setAttribute("opacity", "0"); // Hide main ball, show only pulsation
+        svg.appendChild(c);
+        
+        // Create pulsating ring for small ball
+        const smallRing = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        smallRing.setAttribute("cx", bx);
+        smallRing.setAttribute("cy", by);
+        smallRing.setAttribute("r", INNER_R);
+        smallRing.setAttribute("fill", `url(#${gradId})`);
+        smallRing.setAttribute("stroke", "none");
+        smallRing.setAttribute("filter", "url(#glow)");
+        smallRing.setAttribute("opacity", "0");
+        svg.insertBefore(smallRing, c); // Behind the main circle
+
+        const baseJitter = 0; // remove individual jitter
+        const speed = 6.0 + Math.random() * 4.0; // smoother movement
+        const phase = Math.random() * Math.PI * 2;
+        const wanderSpeed = 0.3 + Math.random() * 0.3; // slower, smoother wandering
+        const wanderPhaseX = Math.random() * Math.PI * 2;
+        const wanderPhaseY = Math.random() * Math.PI * 2;
+
+        const ballData = {
+          el: c,
+          pulseRing: smallRing,
+          pulsePhase: Math.random() * Math.PI * 2,
+          pulseDuration: 2.5 + Math.random() * 1.0,
+          baseX: p.x * TREE_SCALE,
+          baseY: p.y * TREE_SCALE,
+          jitter: baseJitter,
+          speed,
+          phase,
+          baseR: INNER_R,
+          wanderSpeed,
+          wanderPhaseX,
+          wanderPhaseY
+        };
+
+        balls.push(ballData);
+        
+        // If this is the black world (index 0), store balls for independent movement
+        if (worldIdx === 0) {
+          // Create random threads for this black ball (4-6 threads per ball, increased from 2-3)
+          const threadCount = 4 + Math.floor(Math.random() * 3);
+          const threads = [];
+          
+          for (let t = 0; t < threadCount; t++) {
+            const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            line.setAttribute("stroke", "rgba(255,215,0,0.6)");
+            line.setAttribute("stroke-width", "0.3");
+            line.setAttribute("stroke-linecap", "round");
+            line.setAttribute("filter", "url(#glow)");
+            line.setAttribute("opacity", "0");
+            svg.insertBefore(line, threadEnergy);
+            
+            threads.push({
+              el: line,
+              sourceX: Math.random() * 360,
+              sourceY: Math.random() * 850,
+              visible: false,
+              nextChange: Math.random() * 1.5,
+              lifetime: 0
+            });
+          }
+          
+          independentBlackBalls.push({
+            ball: ballData,
+            threads: threads,
+            // Independent screen-space movement using same wandering logic
+            screenX: centerX,
+            screenY: y,
+            wanderAmplitudeX: 150 + Math.random() * 180, // much larger range - nearly full screen width
+            wanderAmplitudeY: 350 + Math.random() * 400, // much larger range - nearly full screen height
+            wanderFreqX: 0.15 + Math.random() * 0.2, // slower frequencies for smoother motion
+            wanderFreqY: 0.2 + Math.random() * 0.25,
+            wanderPhaseX: Math.random() * Math.PI * 2,
+            wanderPhaseY: Math.random() * Math.PI * 2,
+            basePosX: centerX,
+            basePosY: y,
+            // Outgoing threads to white orb
+            toWhiteThread: null,
+            toWhiteVisible: false,
+            toWhiteNextChange: Math.random() * 1.5,
+            // Outgoing threads to other black balls
+            toBlackThreads: []
+          });
+        }
+      });
+
+      // create line elements to connect each ball to every other
+      for (let i = 0; i < balls.length; i++) {
+        for (let j = i + 1; j < balls.length; j++) {
+          const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+          l.setAttribute("stroke", "rgba(255,215,0,0.7)");
+          l.setAttribute("stroke-width", "0.3");
+          l.setAttribute("stroke-linecap", "round");
+          l.setAttribute("filter", "url(#glow)");
+          const startVisible = Math.random() > 0.5;
+          l.setAttribute("opacity", startVisible ? "0.4" : "0");
+          svg.appendChild(l); // add after circles so they're on top
+          group.push({ 
+            el: l, 
+            i, 
+            j, 
+            visible: startVisible,
+            nextChange: 0.5 + Math.random() * 1.0, // slower flicker every 0.5-1.5 seconds
+          });
+        }
+      }
+
+      connectionGroups.push(group);
+      innerWorlds.push({ balls });
+    });
+
+    // Create outgoing threads for black balls after all are initialized
+    independentBlackBalls.forEach((blackBall, idx) => {
+      // Create thread to white orb
+      const toWhiteLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      toWhiteLine.setAttribute("stroke", "rgba(255,215,0,0.6)");
+      toWhiteLine.setAttribute("stroke-width", "0.3");
+      toWhiteLine.setAttribute("stroke-linecap", "round");
+      toWhiteLine.setAttribute("filter", "url(#glow)");
+      toWhiteLine.setAttribute("opacity", "0");
+      svg.insertBefore(toWhiteLine, threadEnergy);
+      blackBall.toWhiteThread = toWhiteLine;
+      
+      // Create threads to 3-5 other random black balls (increased from 2-3)
+      const numConnections = 3 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < numConnections; i++) {
+        let targetIdx = Math.floor(Math.random() * independentBlackBalls.length);
+        // Make sure not connecting to self
+        while (targetIdx === idx) {
+          targetIdx = Math.floor(Math.random() * independentBlackBalls.length);
+        }
+        
+        const toBlackLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        toBlackLine.setAttribute("stroke", "rgba(255,215,0,0.6)");
+        toBlackLine.setAttribute("stroke-width", "0.3");
+        toBlackLine.setAttribute("stroke-linecap", "round");
+        toBlackLine.setAttribute("filter", "url(#glow)");
+        toBlackLine.setAttribute("opacity", "0");
+        svg.insertBefore(toBlackLine, threadEnergy);
+        
+        blackBall.toBlackThreads.push({
+          el: toBlackLine,
+          targetIdx: targetIdx,
+          visible: false,
+          nextChange: Math.random() * 1.5
+        });
+      }
+    });
+
+    function animate(ts) {
+      // slow down whole scene more
+      const speedMul = 0.4;
+      const t = (ts / 1000) * speedMul;
+      const dt = 1 / 60; // approximate delta time
+      const currentY = [];
+
+      // Move main worlds - now floating in 3D space
+      worldNodes.forEach((node, i) => {
+        const floatX = Math.sin(t * floatFreqsX[i] + floatPhasesX[i]) * floatAmpsX[i];
+        const floatY = Math.sin(t * floatFreqsY[i] + floatPhasesY[i]) * floatAmpsY[i];
+        const floatZ = Math.sin(t * floatFreqsZ[i] + floatPhasesZ[i]) * floatAmpsZ[i]; // -0.5 to +0.5
+        const scale = 1.0 + floatZ; // scale from 0.5 to 1.5
+        
+        const nx = centerX + floatX;
+        const ny = baseY[i] + floatY;
+        node.setAttribute("cx", nx);
+        node.setAttribute("cy", ny);
+        node.setAttribute("r", worldRadius * scale);
+        currentY[i] = { x: nx, y: ny, scale: scale };
+        
+        // Animate pulsating ring
+        const ring = pulsateRings[i];
+        if (ring) {
+          const pulseTime = (t / ring.duration) * Math.PI * 2 + ring.phase;
+          const pulseProgress = (Math.sin(pulseTime) + 1) / 2; // 0 to 1
+          
+          // Start from a tiny dot (2px) and expand outward to 2x orb size
+          const ringRadius = 2 + pulseProgress * (worldRadius * scale * 2 - 2);
+          
+          // Fade out as it expands - more translucent as it gets bigger
+          const ringOpacity = (1 - pulseProgress) * 0.6; // fade from 0.6 to 0
+          
+          ring.el.setAttribute("cx", nx);
+          ring.el.setAttribute("cy", ny);
+          ring.el.setAttribute("r", ringRadius);
+          ring.el.setAttribute("opacity", ringOpacity);
+        }
+      });
+
+      // vertical connectors - now with random appearance/disappearance
+      worldLines.forEach((line, i) => {
+        line.setAttribute("x1", currentY[i].x);
+        line.setAttribute("x2", currentY[i + 1].x);
+        line.setAttribute("y1", currentY[i].y);
+        line.setAttribute("y2", currentY[i + 1].y);
+        
+        // Animate visibility
+        const state = worldLineStates[i];
+        state.nextChange -= dt;
+        if (state.nextChange <= 0) {
+          state.visible = !state.visible;
+          state.nextChange = 0.5 + Math.random() * 1.0;
+        }
+        
+        // Smooth opacity transition
+        const currentOpacity = parseFloat(line.getAttribute("opacity"));
+        const targetOpacity = state.visible ? 0.4 : 0;
+        const newOpacity = currentOpacity + (targetOpacity - currentOpacity) * 0.1;
+        line.setAttribute("opacity", newOpacity);
+      });
+
+      // Animate independent black balls moving around the screen
+      independentBlackBalls.forEach(blackBall => {
+        // Use smooth wandering motion like balls inside orbs
+        const wanderX = Math.sin(t * blackBall.wanderFreqX + blackBall.wanderPhaseX) * blackBall.wanderAmplitudeX;
+        const wanderY = Math.sin(t * blackBall.wanderFreqY + blackBall.wanderPhaseY) * blackBall.wanderAmplitudeY;
+        
+        blackBall.screenX = blackBall.basePosX + wanderX;
+        blackBall.screenY = blackBall.basePosY + wanderY;
+        
+        // Keep within screen bounds with minimal padding
+        blackBall.screenX = Math.max(10, Math.min(350, blackBall.screenX));
+        blackBall.screenY = Math.max(10, Math.min(840, blackBall.screenY));
+        
+        // Update ball position
+        blackBall.ball.el.setAttribute("cx", blackBall.screenX);
+        blackBall.ball.el.setAttribute("cy", blackBall.screenY);
+        blackBall.ball.currentX = blackBall.screenX;
+        blackBall.ball.currentY = blackBall.screenY;
+        
+        // Animate pulsating ring for independent black ball
+        if (blackBall.ball.pulseRing) {
+          const pulseTime = (t / blackBall.ball.pulseDuration) * Math.PI * 2 + blackBall.ball.pulsePhase;
+          const pulseProgress = (Math.sin(pulseTime) + 1) / 2;
+          
+          const smallRingRadius = 1 + pulseProgress * (blackBall.ball.baseR * 2 - 1);
+          const smallRingOpacity = (1 - pulseProgress) * 0.6;
+          
+          blackBall.ball.pulseRing.setAttribute("cx", blackBall.screenX);
+          blackBall.ball.pulseRing.setAttribute("cy", blackBall.screenY);
+          blackBall.ball.pulseRing.setAttribute("r", smallRingRadius);
+          blackBall.ball.pulseRing.setAttribute("opacity", smallRingOpacity);
+        }
+        
+        // Animate incoming random threads for this ball
+        blackBall.threads.forEach(thread => {
+          thread.nextChange -= dt;
+          
+          if (thread.nextChange <= 0) {
+            if (!thread.visible) {
+              // Start appearing - pick new random source location
+              thread.sourceX = Math.random() * 360;
+              thread.sourceY = Math.random() * 850;
+              thread.visible = true;
+              thread.nextChange = 0.5 + Math.random() * 1.0; // slower timing
+            } else {
+              // Start disappearing
+              thread.visible = false;
+              thread.nextChange = 0.5 + Math.random() * 1.0;
+            }
+          }
+          
+          // Update line position
+          thread.el.setAttribute("x1", thread.sourceX);
+          thread.el.setAttribute("y1", thread.sourceY);
+          thread.el.setAttribute("x2", blackBall.screenX);
+          thread.el.setAttribute("y2", blackBall.screenY);
+          
+          // Fade in/out with same speed as inner threads
+          const currentOpacity = parseFloat(thread.el.getAttribute("opacity"));
+          const targetOpacity = thread.visible ? 0.4 : 0;
+          const newOpacity = currentOpacity + (targetOpacity - currentOpacity) * 0.2;
+          thread.el.setAttribute("opacity", newOpacity);
+        });
+        
+        // Animate thread to white orb (world index 1)
+        const whiteOrbX = currentY[1].x;
+        const whiteOrbY = currentY[1].y;
+        
+        blackBall.toWhiteNextChange -= dt;
+        if (blackBall.toWhiteNextChange <= 0) {
+          blackBall.toWhiteVisible = !blackBall.toWhiteVisible;
+          blackBall.toWhiteNextChange = 0.5 + Math.random() * 1.0; // slower timing
+        }
+        
+        blackBall.toWhiteThread.setAttribute("x1", blackBall.screenX);
+        blackBall.toWhiteThread.setAttribute("y1", blackBall.screenY);
+        blackBall.toWhiteThread.setAttribute("x2", whiteOrbX);
+        blackBall.toWhiteThread.setAttribute("y2", whiteOrbY);
+        
+        const whiteOpacity = parseFloat(blackBall.toWhiteThread.getAttribute("opacity"));
+        const whiteTarget = blackBall.toWhiteVisible ? 0.4 : 0;
+        blackBall.toWhiteThread.setAttribute("opacity", 
+          whiteOpacity + (whiteTarget - whiteOpacity) * 0.2);
+        
+        // Animate threads to other black balls
+        blackBall.toBlackThreads.forEach(conn => {
+          conn.nextChange -= dt;
+          if (conn.nextChange <= 0) {
+            conn.visible = !conn.visible;
+            conn.nextChange = 0.5 + Math.random() * 1.0; // slower timing
+          }
+          
+          const targetBall = independentBlackBalls[conn.targetIdx];
+          conn.el.setAttribute("x1", blackBall.screenX);
+          conn.el.setAttribute("y1", blackBall.screenY);
+          conn.el.setAttribute("x2", targetBall.screenX);
+          conn.el.setAttribute("y2", targetBall.screenY);
+          
+          const blackOpacity = parseFloat(conn.el.getAttribute("opacity"));
+          const blackTarget = conn.visible ? 0.4 : 0;
+          conn.el.setAttribute("opacity", 
+            blackOpacity + (blackTarget - blackOpacity) * 0.2);
+        });
+      });
+
+      // inner worlds
+      innerWorlds.forEach((world, worldIdx) => {
+        // Skip black world (index 0) - those balls move independently
+        if (worldIdx === 0) return;
+        
+        const wcx = currentY[worldIdx].x;
+        const wcy = currentY[worldIdx].y;
+        const worldScale = currentY[worldIdx].scale;
+        const balls = world.balls;
+
+        // gentler global throb per world
+        const dp = (Math.sin(t * 2.5 + worldIdx * 0.7) + 1) / 2; // 0..1
+        const throbScale = 0.8 + dp * 0.6; // radius multiplier
+        const throbOpacity = 0.35 + dp * 0.65;
+
+        balls.forEach((ball, idx) => {
+          // Smooth wandering movement - balls slowly move to different positions
+          const wanderRadius = worldRadius * 0.75; // increased from 0.65 for more movement
+          const wanderX = Math.sin(t * ball.wanderSpeed + ball.wanderPhaseX) * wanderRadius;
+          const wanderY = Math.cos(t * ball.wanderSpeed + ball.wanderPhaseY) * wanderRadius;
+          
+          let localX = wanderX;
+          let localY = wanderY;
+          
+          // Repulsion between balls
+          const repulsionStrength = 15.0;
+          const repulsionRadius = INNER_R * 4;
+          
+          balls.forEach((otherBall, otherIdx) => {
+            if (idx !== otherIdx && otherBall.currentX !== undefined) {
+              const dx = (wcx + localX * worldScale) - otherBall.currentX;
+              const dy = (wcy + localY * worldScale) - otherBall.currentY;
+              const dist = Math.sqrt(dx * dx + dy * dy);
+              
+              if (dist < repulsionRadius * worldScale && dist > 0) {
+                const force = (repulsionRadius * worldScale - dist) / (repulsionRadius * worldScale);
+                localX += (dx / dist) * force * repulsionStrength;
+                localY += (dy / dist) * force * repulsionStrength;
+              }
+            }
+          });
+          
+          // Constrain balls to stay within the big circle
+          const distFromCenter = Math.sqrt(localX * localX + localY * localY);
+          const maxDist = worldRadius - ball.baseR - 2; // keep a small margin
+          let finalX = localX;
+          let finalY = localY;
+          
+          if (distFromCenter > maxDist) {
+            const scale = maxDist / distFromCenter;
+            finalX = localX * scale;
+            finalY = localY * scale;
+          }
+          
+          // Apply world scale to position
+          const fx = wcx + finalX * worldScale;
+          const fy = wcy + finalY * worldScale;
+          ball.el.setAttribute("cx", fx);
+          ball.el.setAttribute("cy", fy);
+          ball.el.setAttribute("r", ball.baseR * throbScale * worldScale);
+          ball.el.setAttribute("fill-opacity", throbOpacity);
+          
+          // Animate pulsating ring for small ball
+          if (ball.pulseRing) {
+            const pulseTime = (t / ball.pulseDuration) * Math.PI * 2 + ball.pulsePhase;
+            const pulseProgress = (Math.sin(pulseTime) + 1) / 2; // 0 to 1
+            
+            // Start from tiny dot (1px) and expand to 2x ball size
+            const smallRingRadius = 1 + pulseProgress * (ball.baseR * worldScale * 2 - 1);
+            
+            // Fade out as it expands
+            const smallRingOpacity = (1 - pulseProgress) * 0.6;
+            
+            ball.pulseRing.setAttribute("cx", fx);
+            ball.pulseRing.setAttribute("cy", fy);
+            ball.pulseRing.setAttribute("r", smallRingRadius);
+            ball.pulseRing.setAttribute("opacity", smallRingOpacity);
+          }
+          
+          // Store position for edge detection and repulsion
+          ball.currentX = fx;
+          ball.currentY = fy;
+        });
+
+        // radial dark path from center
+        let d = `M ${wcx} ${wcy}`;
+        balls.forEach(ball => {
+          d += ` L ${ball.el.getAttribute("cx")} ${ball.el.getAttribute("cy")}`;
+        });
+        darkPaths[worldIdx].setAttribute("d", d);
+
+        // animate radial darkness too
+        const dalpha = 0.25 + dp * 0.7;
+        darkPaths[worldIdx].setAttribute("stroke-width", 0.3);
+        darkPaths[worldIdx].setAttribute("stroke", `rgba(0,0,0,${dalpha})`);
+
+        // internal connection threads with random appearance
+        const group = connectionGroups[worldIdx];
+        group.forEach(conn => {
+          const b1 = balls[conn.i].el;
+          const b2 = balls[conn.j].el;
+          const x1 = parseFloat(b1.getAttribute("cx"));
+          const y1 = parseFloat(b1.getAttribute("cy"));
+          const x2 = parseFloat(b2.getAttribute("cx"));
+          const y2 = parseFloat(b2.getAttribute("cy"));
+          conn.el.setAttribute("x1", x1);
+          conn.el.setAttribute("y1", y1);
+          conn.el.setAttribute("x2", x2);
+          conn.el.setAttribute("y2", y2);
+          
+          // Random appearance/disappearance logic
+          conn.nextChange -= dt;
+          if (conn.nextChange <= 0) {
+            conn.visible = !conn.visible;
+            conn.nextChange = 0.5 + Math.random() * 1.0; // slower flicker every 0.5-1.5 seconds
+          }
+          
+          // Animate opacity for smooth transitions
+          const currentOpacity = parseFloat(conn.el.getAttribute("opacity"));
+          const targetOpacity = conn.visible ? 0.4 : 0;
+          const newOpacity = currentOpacity + (targetOpacity - currentOpacity) * 0.1; // slower fade
+          conn.el.setAttribute("opacity", newOpacity);
+          
+          // Update stroke width
+          conn.el.setAttribute("stroke-width", 0.5);
+        });
+        
+        // Create lines to edge of big circle when balls get close
+        balls.forEach((ball, idx) => {
+          const dx = ball.currentX - wcx;
+          const dy = ball.currentY - wcy;
+          const distFromCenter = Math.sqrt(dx * dx + dy * dy);
+          const edgeThreshold = worldRadius * worldScale * 0.7; // when ball is beyond 70% of radius
+          
+          if (!ball.edgeLine) {
+            ball.edgeLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            ball.edgeLine.setAttribute("stroke", "rgba(255,215,0,0.7)");
+            ball.edgeLine.setAttribute("stroke-width", "0.1");
+            ball.edgeLine.setAttribute("stroke-linecap", "round");
+            ball.edgeLine.setAttribute("filter", "url(#glow)");
+            ball.edgeLine.setAttribute("opacity", "0");
+            svg.appendChild(ball.edgeLine);
+          }
+          
+          if (distFromCenter > edgeThreshold) {
+            // Calculate point on edge of circle
+            const angle = Math.atan2(dy, dx);
+            const edgeX = wcx + Math.cos(angle) * worldRadius * worldScale;
+            const edgeY = wcy + Math.sin(angle) * worldRadius * worldScale;
+            
+            ball.edgeLine.setAttribute("x1", ball.currentX);
+            ball.edgeLine.setAttribute("y1", ball.currentY);
+            ball.edgeLine.setAttribute("x2", edgeX);
+            ball.edgeLine.setAttribute("y2", edgeY);
+            
+            // Fade in the line
+            const currentOp = parseFloat(ball.edgeLine.getAttribute("opacity"));
+            const targetOp = 0.4;
+            ball.edgeLine.setAttribute("opacity", currentOp + (targetOp - currentOp) * 0.2);
+          } else {
+            // Fade out the line
+            const currentOp = parseFloat(ball.edgeLine.getAttribute("opacity"));
+            ball.edgeLine.setAttribute("opacity", currentOp * 0.8);
+          }
+        });
+      });
+
+      // golden thread through everything
+      let pathD = `M ${currentY[0].x} ${currentY[0].y}`;
+      for (let w = 0; w < innerWorlds.length; w++) {
+        const world = innerWorlds[w];
+        world.balls.forEach(ball => {
+          pathD += ` L ${ball.el.getAttribute("cx")} ${ball.el.getAttribute("cy")}`;
+        });
+        if (w < currentY.length - 1) {
+          pathD += ` L ${currentY[w + 1].x} ${currentY[w + 1].y}`;
+        }
+      }
+      threadEnergy.setAttribute("d", pathD);
+      threadGlow.setAttribute("d", pathD);
+
+      // Make main thread paths flicker like the lines
+      mainThreadState.nextChange -= dt;
+      if (mainThreadState.nextChange <= 0) {
+        mainThreadState.visible = !mainThreadState.visible;
+        mainThreadState.nextChange = 0.5 + Math.random() * 1.0;
+      }
+      
+      // Smooth opacity transition for main threads
+      const currentEnergyOpacity = parseFloat(threadEnergy.getAttribute("opacity"));
+      const currentGlowOpacity = parseFloat(threadGlow.getAttribute("opacity"));
+      const targetOpacity = mainThreadState.visible ? 0.8 : 0;
+      const targetGlowOpacity = mainThreadState.visible ? 1.0 : 0;
+      const newEnergyOpacity = currentEnergyOpacity + (targetOpacity - currentEnergyOpacity) * 0.1;
+      const newGlowOpacity = currentGlowOpacity + (targetGlowOpacity - currentGlowOpacity) * 0.1;
+      threadEnergy.setAttribute("opacity", newEnergyOpacity);
+      threadGlow.setAttribute("opacity", newGlowOpacity);
+
+      // Make main thread behave like inner threads - constant width, flickering opacity
+      threadEnergy.setAttribute("stroke-width", 0.3);
+      threadGlow.setAttribute("stroke-width", 0.3);
+
+      requestAnimationFrame(animate);
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
