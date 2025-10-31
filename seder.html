@@ -423,6 +423,96 @@
       }
     });
 
+    // Add drag interaction for independent black balls and big orbs
+    let draggedBall = null;
+    let draggedOrb = null;
+    let isDragging = false;
+    let dragOffsetX = 0;
+    let dragOffsetY = 0;
+    const orbManualPositions = {}; // Track manually set positions
+    
+    svg.addEventListener('mousedown', (e) => {
+      const rect = svg.getBoundingClientRect();
+      const scaleX = 360 / rect.width;
+      const scaleY = 850 / rect.height;
+      const mouseX = (e.clientX - rect.left) * scaleX;
+      const mouseY = (e.clientY - rect.top) * scaleY;
+      
+      // First check if clicking on any big orb
+      for (let i = 1; i < baseY.length; i++) { // Start from 1 to skip hidden node-0
+        const node = worldNodes[i];
+        if (node.style.display !== 'none') {
+          const orbX = parseFloat(node.getAttribute("cx"));
+          const orbY = parseFloat(node.getAttribute("cy"));
+          const orbR = parseFloat(node.getAttribute("r"));
+          const dx = mouseX - orbX;
+          const dy = mouseY - orbY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dist < orbR) { // Within orb radius
+            draggedOrb = i;
+            isDragging = true;
+            // Store initial mouse offset
+            dragOffsetX = mouseX - orbX;
+            dragOffsetY = mouseY - orbY;
+            return; // Found an orb, don't check small balls
+          }
+        }
+      }
+      
+      // If no orb clicked, check if clicking on any black ball
+      for (let i = 0; i < independentBlackBalls.length; i++) {
+        const ball = independentBlackBalls[i];
+        const dx = mouseX - ball.screenX;
+        const dy = mouseY - ball.screenY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        
+        if (dist < 20) { // detection radius
+          draggedBall = ball;
+          isDragging = true;
+          break;
+        }
+      }
+    });
+    
+    svg.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const rect = svg.getBoundingClientRect();
+        const scaleX = 360 / rect.width;
+        const scaleY = 850 / rect.height;
+        const mouseX = (e.clientX - rect.left) * scaleX;
+        const mouseY = (e.clientY - rect.top) * scaleY;
+        
+        if (draggedBall) {
+          // Update small ball position
+          draggedBall.screenX = Math.max(10, Math.min(350, mouseX));
+          draggedBall.screenY = Math.max(10, Math.min(840, mouseY));
+          
+          // Update base position so it continues from here when released
+          draggedBall.basePosX = draggedBall.screenX;
+          draggedBall.basePosY = draggedBall.screenY;
+        } else if (draggedOrb !== null) {
+          // Directly set orb position while dragging
+          const targetX = mouseX - dragOffsetX;
+          const targetY = mouseY - dragOffsetY;
+          
+          orbManualPositions[draggedOrb] = { x: targetX, y: targetY };
+        }
+      }
+    });
+    
+    svg.addEventListener('mouseup', () => {
+      isDragging = false;
+      draggedBall = null;
+      draggedOrb = null;
+    });
+    
+    svg.addEventListener('mouseleave', () => {
+      isDragging = false;
+      draggedBall = null;
+      draggedOrb = null;
+    });
+
     function animate(ts) {
       // slow down whole scene more
       const speedMul = 0.4;
@@ -432,17 +522,40 @@
 
       // Move main worlds - now floating in 3D space
       worldNodes.forEach((node, i) => {
-        const floatX = Math.sin(t * floatFreqsX[i] + floatPhasesX[i]) * floatAmpsX[i];
-        const floatY = Math.sin(t * floatFreqsY[i] + floatPhasesY[i]) * floatAmpsY[i];
-        const floatZ = Math.sin(t * floatFreqsZ[i] + floatPhasesZ[i]) * floatAmpsZ[i]; // -0.5 to +0.5
-        const scale = 1.0 + floatZ; // scale from 0.5 to 1.5
+        let nx, ny;
         
-        const nx = centerX + floatX;
-        const ny = baseY[i] + floatY;
+        // If manually positioned (being dragged), use that position
+        if (orbManualPositions[i]) {
+          nx = orbManualPositions[i].x;
+          ny = orbManualPositions[i].y;
+        } else {
+          // Normal wandering behavior
+          const floatX = Math.sin(t * floatFreqsX[i] + floatPhasesX[i]) * floatAmpsX[i];
+          const floatY = Math.sin(t * floatFreqsY[i] + floatPhasesY[i]) * floatAmpsY[i];
+          nx = centerX + floatX;
+          ny = baseY[i] + floatY;
+        }
+        
+        const floatZ = Math.sin(t * floatFreqsZ[i] + floatPhasesZ[i]) * floatAmpsZ[i];
+        const scale = 1.0 + floatZ;
+        
         node.setAttribute("cx", nx);
         node.setAttribute("cy", ny);
         node.setAttribute("r", worldRadius * scale);
         currentY[i] = { x: nx, y: ny, scale: scale };
+        
+        // Smoothly return to wandering when not being dragged
+        if (draggedOrb !== i && orbManualPositions[i]) {
+          const naturalX = centerX + Math.sin(t * floatFreqsX[i] + floatPhasesX[i]) * floatAmpsX[i];
+          const naturalY = baseY[i] + Math.sin(t * floatFreqsY[i] + floatPhasesY[i]) * floatAmpsY[i];
+          
+          orbManualPositions[i].x += (naturalX - orbManualPositions[i].x) * 0.05;
+          orbManualPositions[i].y += (naturalY - orbManualPositions[i].y) * 0.05;
+          
+          if (Math.abs(orbManualPositions[i].x - naturalX) < 1 && Math.abs(orbManualPositions[i].y - naturalY) < 1) {
+            delete orbManualPositions[i];
+          }
+        }
         
         // Animate pulsating ring
         const ring = pulsateRings[i];
@@ -487,16 +600,20 @@
 
       // Animate independent black balls moving around the screen
       independentBlackBalls.forEach(blackBall => {
-        // Use smooth wandering motion like balls inside orbs
-        const wanderX = Math.sin(t * blackBall.wanderFreqX + blackBall.wanderPhaseX) * blackBall.wanderAmplitudeX;
-        const wanderY = Math.sin(t * blackBall.wanderFreqY + blackBall.wanderPhaseY) * blackBall.wanderAmplitudeY;
-        
-        blackBall.screenX = blackBall.basePosX + wanderX;
-        blackBall.screenY = blackBall.basePosY + wanderY;
-        
-        // Keep within screen bounds with minimal padding
-        blackBall.screenX = Math.max(10, Math.min(350, blackBall.screenX));
-        blackBall.screenY = Math.max(10, Math.min(840, blackBall.screenY));
+        // Only apply automatic wandering if not being dragged
+        if (blackBall !== draggedBall) {
+          // Use smooth wandering motion like balls inside orbs
+          const wanderX = Math.sin(t * blackBall.wanderFreqX + blackBall.wanderPhaseX) * blackBall.wanderAmplitudeX;
+          const wanderY = Math.sin(t * blackBall.wanderFreqY + blackBall.wanderPhaseY) * blackBall.wanderAmplitudeY;
+          
+          blackBall.screenX = blackBall.basePosX + wanderX;
+          blackBall.screenY = blackBall.basePosY + wanderY;
+          
+          // Keep within screen bounds with minimal padding
+          blackBall.screenX = Math.max(10, Math.min(350, blackBall.screenX));
+          blackBall.screenY = Math.max(10, Math.min(840, blackBall.screenY));
+        }
+        // If dragged, position is already updated by mouse event
         
         // Update ball position
         blackBall.ball.el.setAttribute("cx", blackBall.screenX);
