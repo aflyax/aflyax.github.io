@@ -65,16 +65,12 @@ html
       Click/drag anywhere to play notes
     </div>
     
-    <div class="control-group">
-      <label class="checkbox-label">
-        <input type="checkbox" id="enableSound" checked>
+    <div class="control-group" style="display: flex; gap: 10px; align-items: center;">
+      <label class="checkbox-label" style="flex: 0 0 auto; margin: 0;">
+        <input type="checkbox" id="enableSound">
         Enable Sound
       </label>
-    </div>
-    
-    <div class="control-group">
-      <label>Instrument:</label>
-      <select id="instrumentSelect" style="width: 100%; padding: 5px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer;">
+      <select id="instrumentSelect" style="flex: 1; padding: 5px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer;">
         <option value="choir">Angelic Choir</option>
         <option value="cello" selected>Cello</option>
         <option value="bansuri">Bansuri (Indian Flute)</option>
@@ -131,7 +127,7 @@ html
     let maxSpeedBoost = 1.1;
     let baseSpacingMultiplier = 0.75; // Start at 0.75 density
     let colorfulLines = true; // Toggle between colorful lines or grayscale lines
-    let soundEnabled = true;
+    let soundEnabled = false; // Default to sound off
     let currentInstrument = 'cello'; // Default to cello
     
     // Web Audio API setup
@@ -318,38 +314,66 @@ html
         const bansuriNotes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00]; // C4, D4, E4, F4, G4, A4
         
         bansuriNotes.forEach((freq, index) => {
-          // Main tone - pure sine
+          // Main tone - pure sine with slight detune for warmth
           const osc = audioContext.createOscillator();
           osc.type = 'sine';
           osc.frequency.value = freq;
           
           const gain = audioContext.createGain();
-          gain.gain.value = 0.02;
+          gain.gain.value = 0.025; // Slightly louder fundamental
           
           osc.connect(gain);
           gain.connect(filterNode);
           osc.start(now);
-          // Don't schedule stop - let oscillators run continuously
           
           oscillators.push(osc);
           gainNodes.push(gain);
           
-          // Add breathy noise component for authentic bansuri sound
-          // Octave harmonic for hollowness
+          // Second fundamental with slight detune for chorus effect
+          const osc2 = audioContext.createOscillator();
+          osc2.type = 'sine';
+          osc2.frequency.value = freq;
+          osc2.detune.value = 3; // Slight detune for warmth
+          
+          const gain2 = audioContext.createGain();
+          gain2.gain.value = 0.02;
+          
+          osc2.connect(gain2);
+          gain2.connect(filterNode);
+          osc2.start(now);
+          
+          oscillators.push(osc2);
+          gainNodes.push(gain2);
+          
+          // Octave harmonic for hollow flute character
           const harmonic = audioContext.createOscillator();
           harmonic.type = 'sine';
-          harmonic.frequency.value = freq * 2.01; // Slightly detuned octave
+          harmonic.frequency.value = freq * 2.003; // Slightly detuned octave
           
           const harmonicGain = audioContext.createGain();
-          harmonicGain.gain.value = 0.008;
+          harmonicGain.gain.value = 0.012; // More present octave
           
           harmonic.connect(harmonicGain);
           harmonicGain.connect(filterNode);
           harmonic.start(now);
-          // Don't schedule stop - let oscillators run continuously
           
           oscillators.push(harmonic);
           gainNodes.push(harmonicGain);
+          
+          // Third harmonic for brightness
+          const harmonic2 = audioContext.createOscillator();
+          harmonic2.type = 'sine';
+          harmonic2.frequency.value = freq * 3.01; // Fifth above octave
+          
+          const harmonic2Gain = audioContext.createGain();
+          harmonic2Gain.gain.value = 0.006; // Subtle brightness
+          
+          harmonic2.connect(harmonic2Gain);
+          harmonic2Gain.connect(filterNode);
+          harmonic2.start(now);
+          
+          oscillators.push(harmonic2);
+          gainNodes.push(harmonic2Gain);
         });
       } else if (currentInstrument === 'accordion') {
         // Accordion - C major diatonic scale
@@ -403,7 +427,7 @@ html
         // C major diatonic scale - extended bansuri range
         notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99]; // C4-D4-E4-F4-G4-A4-B4-C5-D5-E5-F5-G5
         waveType = 'sine';
-        harmonics = [1, 2.01]; // Fundamental and slightly detuned octave for hollow bansuri character
+        harmonics = [1, 1.003, 2.003, 3.01]; // Fundamental with slight detune, octave, and third for flute character
       } else if (currentInstrument === 'accordion') {
         // C major diatonic scale - extended accordion range
         notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99]; // C4-D4-E4-F4-G4-A4-B4-C5-D5-E5-F5-G5
@@ -452,13 +476,13 @@ html
         rippleGain.gain.linearRampToValueAtTime(sustainLevel, now + attackTime + decayTime);
         rippleGain.gain.exponentialRampToValueAtTime(0.001, now + noteDuration);
       } else if (currentInstrument === 'bansuri') {
-        const attackTime = 0.08 + (normalizedX * 0.12); // 0.08s to 0.2s breathy attack
-        const decayTime = noteDuration * 0.2;
-        const sustainLevel = 0.07 + (normalizedX * 0.03);
-        const releaseTime = noteDuration * 0.8;
+        const attackTime = 0.06 + (normalizedX * 0.15); // 0.06s to 0.21s breathy attack
+        const decayTime = noteDuration * 0.15;
+        const sustainLevel = 0.09 + (normalizedX * 0.04); // Good sustain for flute
+        const releaseTime = noteDuration * 0.85;
         
         rippleGain.gain.setValueAtTime(0, now);
-        rippleGain.gain.linearRampToValueAtTime(0.13, now + attackTime); // Softer for breathy quality
+        rippleGain.gain.linearRampToValueAtTime(0.16, now + attackTime); // Brighter for flute
         rippleGain.gain.linearRampToValueAtTime(sustainLevel, now + attackTime + decayTime);
         rippleGain.gain.exponentialRampToValueAtTime(0.001, now + noteDuration);
       } else if (currentInstrument === 'accordion') {
@@ -590,8 +614,10 @@ html
         if (audioContext.state === 'suspended') {
           audioContext.resume();
         }
-      } else if (audioContext) {
-        audioContext.suspend();
+      } else {
+        if (audioContext) {
+          audioContext.suspend();
+        }
       }
     });
     
@@ -1152,7 +1178,7 @@ html
           // Skip if outside canvas
           if (px < -spacing || px > W + spacing || py < -spacing || py > H + spacing) continue;
 
-          // Normal rendering - no density increase in ripples
+          // Normal rendering
           renderVector(gridX, gridY, px, py);
         }
       }
@@ -1427,8 +1453,8 @@ html
       requestAnimationFrame(draw);
     }
 
-    // Initialize audio on page load
-    initAudio();
+    // Don't initialize audio on page load - wait for user to enable sound
+    // initAudio();
     
     draw();
   </script>
