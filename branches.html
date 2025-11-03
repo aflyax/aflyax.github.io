@@ -91,7 +91,23 @@
         
         // Lifecycle system
         const burstParticles = [];
-    const LIFECYCLE_INTERVAL = 5000; // 5 seconds
+    const LIFECYCLE_INTERVAL = 2000; // 2 seconds (further shortened cycle)
+        // --- Dynamic sizing configuration ---
+        const BASE_PARENT_RADIUS = 10; // minimum visual radius for a parent
+        const BASE_MEGA_RADIUS = 70;   // baseline mega-parent radius
+        const SIZE_FACTOR_PARENT = 2.2; // growth multiplier per sqrt(descendant count)
+        const SIZE_FACTOR_MEGA = 4.0;   // mega-parent growth per sqrt(descendant count)
+        // Gravity system configuration
+        const GRAVITY_ACTIVATION_DISTANCE = 420; // distance from centroid after which gravity pulls inward
+        const GRAVITY_FORCE = 0.015; // base pull strength per frame (scaled by excess distance)
+        const GRAVITY_MAX_STEP = 3.0; // cap per-frame inward movement
+        // Collapse phase configuration
+        const COLLAPSE_BABY_THRESHOLD = 250; // trigger threshold
+        let collapseMode = false; // whether collapse logic is active
+        let lastCollapseMergeTime = 0;
+        const COLLAPSE_MERGE_COOLDOWN = 400; // ms between merges
+        let lifecycleIntervalId = null;
+        let autoInvestigateIntervalId = null;
     const BABY_EVOLVE_PROBABILITY = 0.15; // Normal evolution probability (one max per cycle)
     const BABY_BURST_PROBABILITY = 0.10; // Probability gating for each potential burst (max 3 per cycle)
     const BABY_MIN_AGE = 15000; // 15 seconds before can burst
@@ -106,6 +122,8 @@
     let cycleDeaths = 0;
     let cycleDemotions = 0;
     let cycleEvolution = 0;
+    // Startup timing anchor
+    let startupStartTime = 0;
         
         // Setup speed sliders
         const parentSpeedSlider = document.getElementById('parentSpeedSlider');
@@ -140,7 +158,7 @@
         const parentNodes = [];
 
         // (Re)spawn a parent node attached to a mega-parent; optional forced baby count
-        function spawnParent(megaParent, isInitial = false, forcedBabyCount = null) {
+    function spawnParent(megaParent, isInitial = false, forcedBabyCount = null) {
             const angle = Math.random() * Math.PI * 2;
             const dist = (megaParent.radius + 40) + Math.random() * 60;
             const baseX = megaParent.x + Math.cos(angle) * dist;
@@ -186,7 +204,11 @@
                 megaParent,
                 isDragging: false,
                 nodeType: 'parent',
-                tentaclePhase: Math.random() * Math.PI * 2
+                tentaclePhase: Math.random() * Math.PI * 2,
+                children: [],
+                isGrandparent: false,
+                prevChildCount: 0,
+                lastRehomeTime: 0
             };
             parentNodes.push(parent);
             megaParent.children.push(parent);
@@ -194,17 +216,20 @@
             return parent;
         }
 
-        // Initial setup sequence:
-        //  1. Create ONE mega-parent.
-        //  2. Spawn FOUR babies directly on the mega-parent (as spokes).
-        //  3. Each of those FOUR babies immediately evolves into a parent (positioned at its endpoint) with FOUR babies of its own.
-        //  4. Regular lifecycle then begins (early death suppression logic still applies to first five cycles).
+        // Startup staging:
+        //   Stage 0 (t=0s): Spawn ONE mega-parent only.
+        //   Stage 1 (t=5s): Mega-parent springs FOUR babies (spokes).
+        //   Stage 2 (t=10s): Each of those FOUR babies evolves into a parent (each new parent gets 4 babies).
+        //   Stage 3 (t=10s+): Regular lifecycle begins (first five cycles still suppress deaths).
+        let startupStage = 0; // 0 mega only, 1 babies spawned, 2 parents evolved, 3 lifecycle active
+        let lifecycleStarted = false;
+
         function createInitialSetup() {
             megaParentNodes.length = 0;
             parentNodes.length = 0;
             const baseX = centerX;
             const baseY = centerY;
-            const radius = 70; // central mega-parent
+            const radius = 70;
             const megaParent = {
                 baseX, baseY,
                 x: baseX, y: baseY, z: 0,
@@ -225,12 +250,22 @@
                 isDragging: false,
                 nodeType: 'megaParent'
             };
+            megaParent.prevChildCount = 0;
+            megaParent.lastRehomeTime = 0;
             megaParentNodes.push(megaParent);
+            startupStage = 0;
+            startupStartTime = Date.now();
+            updateStats();
+            scheduleStartupPhases();
+        }
 
-            // Step 2: spawn four babies on mega-parent
+        function spawnInitialBabies() {
+            if (startupStage !== 0) return;
+            const megaParent = megaParentNodes[0];
+            if (!megaParent) return;
             for (let i = 0; i < 4; i++) {
                 const angle = (i / 4) * Math.PI * 2;
-                const length = radius * 2.2 + Math.random() * (radius * 0.6);
+                const length = megaParent.radius * 2.2 + Math.random() * (megaParent.radius * 0.6);
                 megaParent.spokeData.push({
                     angle,
                     targetAngle: angle + (Math.random() - 0.5) * 0.3,
@@ -243,15 +278,71 @@
                     birthTime: Date.now()
                 });
             }
+            startupStage = 1;
+            updateStats();
+            // Trigger shrink animation for original mega after initial birth
+            startMegaShrink();
+        }
 
-            // Step 3: evolve each baby into a parent (iterate from last to first to avoid index shift)
+        function startMegaShrink() {
+            const megaParent = megaParentNodes[0];
+            if (!megaParent || megaParent.shrinkStartTime) return;
+            megaParent.shrinkStartTime = Date.now();
+            megaParent.originalRadius = megaParent.radius;
+            megaParent.targetRadius = Math.max(30, megaParent.radius * 0.55); // shrink to ~55% or floor 30
+            megaParent.shrinkDuration = 1800; // ms
+        }
+
+        function evolveInitialBabies() {
+            if (startupStage !== 1) return;
+            const megaParent = megaParentNodes[0];
+            if (!megaParent) return;
+            // evolve each existing baby into a parent
             for (let i = megaParent.spokeData.length - 1; i >= 0; i--) {
                 evolveBabyToParent(megaParent, i);
             }
+            startupStage = 2;
             updateStats();
+            startLifecycle();
         }
 
-        // Run initial sequence
+        function scheduleStartupPhases() {
+            // 3s after load -> spawn babies (shortened initial phase)
+            setTimeout(spawnInitialBabies, 3000);
+            // 10s after load -> evolve into parents & begin lifecycle (unchanged second stage)
+            setTimeout(evolveInitialBabies, 10000);
+        }
+
+        function startLifecycle() {
+            if (lifecycleStarted) return;
+            lifecycleStarted = true;
+            startupStage = 3;
+            nextCycleTime = Date.now() + LIFECYCLE_INTERVAL;
+            lifecycleCycleIndex = 0; // ensure suppression count starts now
+            setInterval(runLifecycleCheck, LIFECYCLE_INTERVAL);
+            // Begin autonomous random investigations every 3 seconds
+            setInterval(() => {
+                if (parentNodes.length === 0) return;
+                const margin = 80;
+                const x = margin + Math.random() * (width - margin * 2);
+                const y = margin + Math.random() * (height - margin * 2);
+                let closest = null;
+                let bestDist = Infinity;
+                parentNodes.forEach(p => {
+                    if (p.isDemoting) return;
+                    const dx = x - p.x;
+                    const dy = y - p.y;
+                    const d = dx*dx + dy*dy;
+                    if (d < bestDist) { bestDist = d; closest = p; }
+                });
+                if (closest) {
+                    closest.isInvestigating = true;
+                    closest.investigateTarget = { x, y };
+                }
+            }, 3000);
+        }
+
+        // Kick off startup sequence
         createInitialSetup();
 
         // Spawn baby attached to ANY node (adds one more spoke/tentacle with dot at end)
@@ -273,6 +364,120 @@
                 birthTime: Date.now() // Track when baby was born
             });
             
+            updateStats();
+        }
+
+        // --- Descendant counting & dynamic sizing helpers ---
+        function computeDescendantCount(parent) {
+            if (!parent) return 0;
+            let count = 0;
+            if (parent.spokeData) {
+                count += parent.spokeData.filter(s => s.isBaby && !s.isDying && !s.removeQueued).length;
+            }
+            if (parent.children && parent.children.length) {
+                parent.children.forEach(child => {
+                    if (child === parent) return; // safety guard
+                    count += 1; // count the child parent node itself
+                    count += computeDescendantCount(child);
+                });
+            }
+            return count;
+        }
+
+        function getDescendantsSet(parent, set = new Set()) {
+            if (!parent || !parent.children) return set;
+            parent.children.forEach(child => {
+                if (!set.has(child)) {
+                    set.add(child);
+                    getDescendantsSet(child, set);
+                }
+            });
+            return set;
+        }
+
+        function handleRehomeLogic(node) {
+            if (!node || node.isDemoting) return;
+            // Gate rehome logic until after first 5 cycles of the lifecycle
+            if (lifecycleStarted && typeof lifecycleCycleIndex === 'number' && lifecycleCycleIndex < 5) {
+                // Still record current child count so transitions are detected later
+                node.prevChildCount = node.children ? node.children.length : 0;
+                return; // Suppress any rehome action during initial grace period
+            }
+            const now = Date.now();
+            const isMega = node.nodeType === 'megaParent';
+            const babyCount = node.spokeData.filter(s => s.isBaby && !s.removeQueued && !s.isDying).length;
+            const childCount = node.children ? node.children.length : 0;
+
+            // Determine transition: previously had child parents, now lost them.
+            const lostAllChildParents = node.prevChildCount > 0 && childCount === 0;
+            const megaHasNoChildren = isMega && childCount === 0; // mega-parent rule
+            const completelyEmpty = babyCount === 0 && childCount === 0;
+
+            // Cooldown to prevent constant rehoming when still childless
+            const COOLDOWN = 1500; // ms
+            const canRehome = (now - (node.lastRehomeTime || 0)) > COOLDOWN;
+
+            // Only rehome if we either just lost children, are a mega with no children, or are totally empty.
+            if (!(lostAllChildParents || megaHasNoChildren || completelyEmpty)) {
+                node.prevChildCount = childCount;
+                return;
+            }
+            if (!canRehome) {
+                node.prevChildCount = childCount;
+                return;
+            }
+
+            // Build candidate list excluding itself & descendants to avoid cycles.
+            const descendants = getDescendantsSet(node);
+            const candidates = parentNodes.filter(p => p !== node && !p.isDemoting && !descendants.has(p));
+            let target = null;
+            if (candidates.length) {
+                let bestDist = Infinity;
+                candidates.forEach(c => {
+                    const dx = c.x - node.x;
+                    const dy = c.y - node.y;
+                    const d = dx*dx + dy*dy;
+                    if (d < bestDist) { bestDist = d; target = c; }
+                });
+            } else if (megaParentNodes.length && !isMega) {
+                // Fallback for non-mega nodes: attach to an existing mega if no parents available
+                target = megaParentNodes[0];
+            } else if (isMega && parentNodes.length) {
+                // Mega-parent fallback: if no candidates due to all being descendants (unlikely), pick any parent
+                target = parentNodes[0];
+            }
+
+            if (!target) {
+                node.prevChildCount = childCount;
+                return; // nothing to attach to yet
+            }
+
+            // Detach from previous parent
+            if (node.megaParent && node.megaParent.children) {
+                const idx = node.megaParent.children.indexOf(node);
+                if (idx >= 0) node.megaParent.children.splice(idx, 1);
+            }
+
+            // If this was a mega-parent converting to child behavior, optionally downgrade to 'parent'
+            if (isMega) {
+                // Remove from megaParentNodes
+                const megaIdx = megaParentNodes.indexOf(node);
+                if (megaIdx >= 0) megaParentNodes.splice(megaIdx, 1);
+                node.nodeType = 'parent';
+            }
+
+            if (!target.children) target.children = [];
+            target.children.push(node);
+            node.megaParent = target;
+            node.isGrandparent = false;
+            node.lastRehomeTime = now;
+
+            // Spawn babies only if completely empty OR mega lost all children
+            if (completelyEmpty || megaHasNoChildren) {
+                for (let i = 0; i < 4; i++) spawnBaby(node);
+            }
+
+            node.prevChildCount = childCount;
             updateStats();
         }
 
@@ -300,25 +505,8 @@
             }
         }
 
-        // Baby death particles (orange implosion)
-        function createBabyDeathParticles(x, y, z) {
-            if (!isFinite(x) || !isFinite(y) || !isFinite(z)) return;
-            const num = 14 + Math.floor(Math.random() * 6);
-            for (let i = 0; i < num; i++) {
-                const ang = (Math.PI * 2 * i) / num + (Math.random() - 0.5) * 0.4;
-                const speed = 1.5 + Math.random() * 1.5;
-                burstParticles.push({
-                    x, y, z: z || 0,
-                    vx: Math.cos(ang) * speed * 0.6,
-                    vy: Math.sin(ang) * speed * 0.6,
-                    vz: (Math.random() - 0.5) * speed * 0.4,
-                    life: 0.9,
-                    decay: 0.02 + Math.random() * 0.015,
-                    size: 2 + Math.random() * 2,
-                    isDeath: true
-                });
-            }
-        }
+        // Baby death particles disabled (orange effect removed)
+        function createBabyDeathParticles(x, y, z) { return; }
 
         // Parent demotion particles (subtle gray collapse)
         function createDemotionParticles(x, y, z) {
@@ -346,8 +534,8 @@
                 const baby = parentNode.spokeData[babyIndex];
                 if (!baby) return;
 
-                // Derive megaParent reference (if evolving from a parent use its megaParent, else itself if megaParent)
-                const megaParentRef = parentNode.nodeType === 'parent' ? parentNode.megaParent : parentNode.nodeType === 'megaParent' ? parentNode : null;
+                // Hierarchical attachment: if evolving from a parent, attach new parent TO THAT parent (forming chain)
+                const megaParentRef = parentNode.nodeType === 'parent' ? parentNode : parentNode.nodeType === 'megaParent' ? parentNode : null;
 
                 // Compute world position of baby
                 const angle = baby.angle || 0;
@@ -429,38 +617,17 @@
             }
         }
         
-        // Evolution particle system - brighter/different color than burst
-        function createEvolutionParticles(x, y, z) {
-            // Validate input
-            if (!isFinite(x) || !isFinite(y) || !isFinite(z)) {
-                console.warn('Invalid particle position, skipping evolution particles');
-                return;
-            }
-            
-            const numParticles = 20 + Math.floor(Math.random() * 15);
-            for (let i = 0; i < numParticles; i++) {
-                const angle = (Math.PI * 2 * i) / numParticles + (Math.random() - 0.5) * 0.3;
-                const speed = 3 + Math.random() * 4;
-                burstParticles.push({
-                    x, y, z: z || 0,
-                    vx: Math.cos(angle) * speed,
-                    vy: Math.sin(angle) * speed,
-                    vz: (Math.random() - 0.5) * speed * 1.5,
-                    life: 1.0,
-                    decay: 0.015 + Math.random() * 0.008,
-                    size: 3 + Math.random() * 4,
-                    isEvolution: true // Flag for different color
-                });
-            }
-        }
+        // Evolution particles disabled (green effect removed)
+        function createEvolutionParticles(x, y, z) { return; }
 
-        // Lifecycle check - runs every 5 seconds
+    // Lifecycle check - runs every 5 seconds (after startup sequence completes)
         // Rules:
         //  - Exactly ONE baby evolves each cycle (oldest chosen)
         //  - Exactly THREE babies burst each cycle (oldest remaining chosen)
         //  - First FIVE cycles: suppress baby deaths (no shrinking) but allow evolution & spawning
         let lifecycleCycleIndex = 0;
         function runLifecycleCheck() {
+            if (!lifecycleStarted) return; // guard: ignore until startup finishes
             try {
                 const currentTime = Date.now();
                 const allNodes = [...megaParentNodes, ...parentNodes];
@@ -533,18 +700,10 @@
                     });
                 }
 
-                // Mark parents with zero babies for shrink demotion
-                parentNodes.forEach(parent => {
-                    if (parent.isDemoting) return; // already in process
-                    if (!parent.megaParent) return; // only demote if attached
-                    const babyCount = parent.spokeData.filter(s => s.isBaby).length;
-                    if (babyCount === 0) {
-                        parent.isDemoting = true;
-                        parent.demoteStartTime = Date.now();
-                        parent.originalRadius = parent.radius;
-                        cycleDemotions++;
-                    }
-                });
+                // Rehome logic for parents (and converted mega) during lifecycle
+                parentNodes.forEach(parent => handleRehomeLogic(parent));
+                // Also apply logic to remaining mega-parents (before possible conversion)
+                megaParentNodes.forEach(mp => handleRehomeLogic(mp));
 
                 // Evolution tracking
                 if (evolvedThisCycle) {
@@ -555,15 +714,15 @@
                 }
                 lifecycleCycleIndex++;
 
-                // Spawn two babies on distinct parents each cycle (skip demoting ones)
+                // Spawn up to FOUR babies (one per selected parent) each cycle
                 const spawnableParents = parentNodes.filter(p => !p.isDemoting && p.spokeData);
                 if (spawnableParents.length > 0) {
-                    // Shuffle simple
                     for (let i = spawnableParents.length - 1; i > 0; i--) {
                         const r = Math.floor(Math.random() * (i + 1));
                         [spawnableParents[i], spawnableParents[r]] = [spawnableParents[r], spawnableParents[i]];
                     }
-                    const toSpawn = spawnableParents.slice(0, 2);
+                    const maxBabies = 4;
+                    const toSpawn = spawnableParents.slice(0, maxBabies);
                     toSpawn.forEach(parent => spawnBaby(parent));
                 }
                 updateStats();
@@ -575,17 +734,30 @@
             }
         }
 
-        // Start lifecycle timer and countdown
-        let nextCycleTime = Date.now() + LIFECYCLE_INTERVAL;
-        setInterval(runLifecycleCheck, LIFECYCLE_INTERVAL);
+    // Lifecycle timer variables (initialized when lifecycle starts in startLifecycle())
+    let nextCycleTime = 0;
         
         // Update countdown display
         function updateCountdown() {
-            const remaining = Math.max(0, Math.ceil((nextCycleTime - Date.now()) / 1000));
             const countdownEl = document.getElementById('cycleCountdown');
-            if (countdownEl) {
-                countdownEl.textContent = `Next cycle: ${remaining}s`;
+            if (!countdownEl) return;
+            if (!lifecycleStarted) {
+                const now = Date.now();
+                let msg = 'Startup...';
+                if (startupStage === 0) {
+                    const secs = Math.max(0, Math.ceil((startupStartTime + 5000 - now) / 1000));
+                    msg = `Startup: spawning babies in ${secs}s`;
+                } else if (startupStage === 1) {
+                    const secs = Math.max(0, Math.ceil((startupStartTime + 10000 - now) / 1000));
+                    msg = `Startup: evolving babies in ${secs}s`;
+                } else if (startupStage === 2) {
+                    msg = 'Startup: activating lifecycle...';
+                }
+                countdownEl.textContent = msg;
+                return;
             }
+            const remaining = Math.max(0, Math.ceil((nextCycleTime - Date.now()) / 1000));
+            countdownEl.textContent = `Next cycle: ${remaining}s`;
         }
         setInterval(updateCountdown, 100); // Update every 100ms for smooth countdown
 
@@ -654,7 +826,17 @@
                 const clamped = Math.min(1, shrinkProgress);
                 shrinkFactor = Math.max(0.1, 1 - clamped);
             }
-            const scaledRadius = node.radius * scale * shrinkFactor;
+            // Dynamic descendant-based radius
+            let dynamicRadius = node.radius;
+            if (node.nodeType === 'parent') {
+                const descendants = computeDescendantCount(node);
+                dynamicRadius = Math.max(BASE_PARENT_RADIUS, BASE_PARENT_RADIUS + SIZE_FACTOR_PARENT * Math.sqrt(descendants));
+            } else if (node.nodeType === 'megaParent') {
+                const descendants = computeDescendantCount(node);
+                const baseR = node.radius; // allow shrink animation to influence baseline
+                dynamicRadius = Math.max(baseR, baseR + SIZE_FACTOR_MEGA * Math.sqrt(descendants));
+            }
+            const scaledRadius = dynamicRadius * scale * shrinkFactor;
             
             // Validate radius
             if (!isFinite(scaledRadius) || scaledRadius <= 0) {
@@ -785,28 +967,10 @@
             ctx.lineWidth = 1.5;
             ctx.arc(node.x, node.y, scaledRadius * 0.95, 0, Math.PI * 2);
             ctx.stroke();
+
+            // (Removed investigation pulse ring)
             
-            // Visual indicator for newly evolved parents (green ring that fades over 10 seconds)
-            if (node.isEvolved && node.evolveTime) {
-                const timeSinceEvolution = Date.now() - node.evolveTime;
-                const fadeTime = 10000; // 10 seconds
-                if (timeSinceEvolution < fadeTime) {
-                    const fadeOpacity = 1 - (timeSinceEvolution / fadeTime);
-                    ctx.beginPath();
-                    ctx.strokeStyle = `rgba(100, 255, 150, ${0.8 * fadeOpacity * depthOpacity})`;
-                    ctx.lineWidth = 3;
-                    ctx.arc(node.x, node.y, scaledRadius * 1.2, 0, Math.PI * 2);
-                    ctx.stroke();
-                    
-                    // Pulsing outer ring
-                    const pulse = Math.sin(timeSinceEvolution * 0.005) * 0.5 + 0.5;
-                    ctx.beginPath();
-                    ctx.strokeStyle = `rgba(100, 255, 150, ${0.4 * fadeOpacity * pulse * depthOpacity})`;
-                    ctx.lineWidth = 2;
-                    ctx.arc(node.x, node.y, scaledRadius * (1.2 + pulse * 0.3), 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-            }
+            // (Removed green evolution halo as requested)
         }
 
         // Update all node positions
@@ -828,6 +992,23 @@
                     megaParent.x = newX;
                     megaParent.y = newY;
                     megaParent.z = Math.sin(megaParent.floatAngleZ) * megaParent.floatRadiusZ;
+                    // Clamp mega-parent inside viewport margins
+                    const margin = 80;
+                    megaParent.x = Math.max(margin, Math.min(width - margin, megaParent.x));
+                    megaParent.y = Math.max(margin, Math.min(height - margin, megaParent.y));
+                    megaParent.baseX = Math.max(margin, Math.min(width - margin, megaParent.baseX));
+                    megaParent.baseY = Math.max(margin, Math.min(height - margin, megaParent.baseY));
+                    // Apply shrink animation
+                    if (megaParent.shrinkStartTime) {
+                        const t = (Date.now() - megaParent.shrinkStartTime) / megaParent.shrinkDuration;
+                        if (t >= 1) {
+                            megaParent.radius = megaParent.targetRadius;
+                            megaParent.shrinkStartTime = null; // done
+                        } else {
+                            const ease = 1 - Math.pow(1 - t, 3); // cubic ease-out
+                            megaParent.radius = megaParent.originalRadius + (megaParent.targetRadius - megaParent.originalRadius) * ease;
+                        }
+                    }
                 } else {
                     // When dragging, calculate velocity from position change
                     megaParent.vx = megaParent.x - megaParent.prevX;
@@ -907,6 +1088,29 @@
                     parent.floatAngleY += parent.floatSpeedY * parentSpeed;
                     parent.floatAngleZ += parent.floatSpeedZ * parentSpeed;
                     
+                    // Investigation attraction overrides base while active
+                    if (parent.isInvestigating && parent.investigateTarget) {
+                        const tx = parent.investigateTarget.x;
+                        const ty = parent.investigateTarget.y;
+                        const dx = tx - parent.baseX;
+                        const dy = ty - parent.baseY;
+                        const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                        // Reduced investigation speed with soft deceleration near target
+                        const maxStep = 1.2; // was ~3
+                        const speedFactor = 0.06; // scaling factor for distance
+                        let step = dist * speedFactor * parentSpeed;
+                        if (step > maxStep) step = maxStep;
+                        // Ease out when close (< 40px)
+                        if (dist < 40) step *= dist / 40; 
+                        const nx = parent.baseX + (dx / dist) * step;
+                        const ny = parent.baseY + (dy / dist) * step;
+                        parent.baseX += (nx - parent.baseX);
+                        parent.baseY += (ny - parent.baseY);
+                        if (dist < 8) { // slightly larger arrival radius due to slower approach
+                            parent.isInvestigating = false;
+                            parent.investigateTarget = null;
+                        }
+                    }
                     const newX = parent.baseX + Math.sin(parent.floatAngleX) * parent.floatRadiusX;
                     const newY = parent.baseY + Math.cos(parent.floatAngleY) * parent.floatRadiusY;
                     
@@ -917,6 +1121,12 @@
                     parent.x = newX;
                     parent.y = newY;
                     parent.z = Math.sin(parent.floatAngleZ) * parent.floatRadiusZ;
+                    // Clamp parent inside viewport margins
+                    const margin = 80;
+                    parent.x = Math.max(margin, Math.min(width - margin, parent.x));
+                    parent.y = Math.max(margin, Math.min(height - margin, parent.y));
+                    parent.baseX = Math.max(margin, Math.min(width - margin, parent.baseX));
+                    parent.baseY = Math.max(margin, Math.min(height - margin, parent.baseY));
                     
                     // Update tentacle phase for baby animation using babySpeed
                     parent.tentaclePhase += 0.01 * babySpeed;
@@ -1064,6 +1274,30 @@
                     }
                 }
             }
+
+            // --- Gravity attraction when nodes are far from centroid ---
+            const allNodes = [...megaParentNodes, ...parentNodes];
+            if (allNodes.length) {
+                let cx = 0, cy = 0;
+                allNodes.forEach(n => { cx += n.x; cy += n.y; });
+                cx /= allNodes.length; cy /= allNodes.length;
+                allNodes.forEach(n => {
+                    if (n.isDragging) return;
+                    const dx = cx - n.x;
+                    const dy = cy - n.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy) || 1;
+                    if (dist > GRAVITY_ACTIVATION_DISTANCE) {
+                        const excess = dist - GRAVITY_ACTIVATION_DISTANCE;
+                        let step = excess * GRAVITY_FORCE * parentSpeed; // scale by excess distance
+                        if (step > GRAVITY_MAX_STEP) step = GRAVITY_MAX_STEP;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        // Move base positions inward so floating centers drift toward cluster
+                        n.baseX += nx * step;
+                        n.baseY += ny * step;
+                    }
+                });
+            }
         }
 
         // Mouse interaction
@@ -1161,6 +1395,32 @@
             }
         });
 
+        // Single click attraction: closest parent investigates click location
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const margin = 80;
+            let x = e.clientX - rect.left;
+            let y = e.clientY - rect.top;
+            x = Math.max(margin, Math.min(width - margin, x));
+            y = Math.max(margin, Math.min(height - margin, y));
+            let closest = null;
+            let bestDist = Infinity;
+            parentNodes.forEach(p => {
+                if (p.isDemoting) return;
+                const dx = x - p.x;
+                const dy = y - p.y;
+                const d = dx*dx + dy*dy;
+                if (d < bestDist) {
+                    bestDist = d;
+                    closest = p;
+                }
+            });
+            if (closest) {
+                closest.isInvestigating = true;
+                closest.investigateTarget = { x, y };
+            }
+        });
+
         canvas.addEventListener('mouseleave', () => {
             if (draggedNode) {
                 draggedNode.isDragging = false;
@@ -1176,36 +1436,18 @@
             
             updateNodes();
 
-            // Finalize demotions whose shrink is complete
+            // Finalize vanish (demotions used as vanish) whose shrink is complete
             const now = Date.now();
             for (let i = parentNodes.length - 1; i >= 0; i--) {
                 const p = parentNodes[i];
                 if (p.isDemoting && p.demoteStartTime && (now - p.demoteStartTime) >= DEMOTE_SHRINK_DURATION) {
-                    const mp = p.megaParent;
-                    if (mp) {
-                        const dx = p.x - mp.x;
-                        const dy = p.y - mp.y;
-                        let angle = Math.atan2(dy, dx);
-                        if (!isFinite(angle)) angle = Math.random() * Math.PI * 2;
-                        const dist = Math.sqrt(dx*dx + dy*dy);
-                        const length = Math.max(mp.radius * 1.8, dist || (mp.radius * 2.3));
-                        const curvature = (Math.random() - 0.5) * 0.4;
-                        mp.spokeData.push({
-                            angle,
-                            targetAngle: angle + (Math.random() - 0.5) * 0.3,
-                            orbitSpeed: 0.001 + Math.random() * 0.002,
-                            verticalAngle: Math.random() * Math.PI * 2,
-                            verticalSpeed: 0.001 + Math.random() * 0.002,
-                            length,
-                            curvature,
-                            isBaby: true,
-                            birthTime: Date.now()
-                        });
-                        const childIdx = mp.children.indexOf(p);
-                        if (childIdx >= 0) mp.children.splice(childIdx, 1);
-                    }
-                    // Demotion particles (subtle gray collapse)
+                    // Removal particles (subtle gray collapse)
                     createDemotionParticles(p.x, p.y, p.z || 0);
+                    // Detach from parent if still referenced
+                    if (p.megaParent && p.megaParent.children) {
+                        const idx = p.megaParent.children.indexOf(p);
+                        if (idx >= 0) p.megaParent.children.splice(idx, 1);
+                    }
                     parentNodes.splice(i, 1);
                     updateStats();
                 }
@@ -1223,19 +1465,9 @@
                 }
             });
 
-            // Immediate demotion trigger: as soon as a parent has zero babies, start smooth shrink (no waiting for lifecycle)
-            parentNodes.forEach(p => {
-                if (p.isDemoting) return;
-                if (!p.megaParent) return; // only attached parents demote
-                const babyCount = p.spokeData.filter(s => s.isBaby && !s.removeQueued && !s.isDying).length;
-                if (babyCount === 0) {
-                    p.isDemoting = true;
-                    p.demoteStartTime = Date.now();
-                    p.originalRadius = p.radius;
-                    // Increment current cycle demotions counter (may be reset at next lifecycle tick)
-                    cycleDemotions++;
-                }
-            });
+            // Apply rehome logic each frame (parents + remaining mega-parents)
+            parentNodes.forEach(p => handleRehomeLogic(p));
+            megaParentNodes.forEach(mp => handleRehomeLogic(mp));
             
             // Update burst particles (limit to prevent overflow)
             if (burstParticles.length > 500) {
@@ -1259,14 +1491,25 @@
             ctx.fillStyle = '#f8f8f8';
             ctx.fillRect(0, 0, width, height);
 
-            // Draw connections from mega-parents to parents
-            megaParentNodes.forEach(megaParent => {
-                megaParent.children.forEach(parent => {
-                    drawCurvedConnection(megaParent, parent, 0.2);
-                });
+            // Grandparent detachment: if a parent has at least one child that itself has babies, detach from its own parent
+            parentNodes.forEach(p => {
+                if (p.megaParent && p.children && p.children.some(c => c.spokeData && c.spokeData.some(s => s.isBaby))) {
+                    // Detach connection
+                    const oldParent = p.megaParent;
+                    p.megaParent = null;
+                    p.isGrandparent = true;
+                    if (oldParent && oldParent.children) {
+                        const idx = oldParent.children.indexOf(p);
+                        if (idx >= 0) oldParent.children.splice(idx, 1);
+                    }
+                }
             });
-            
-            // Draw connections between all mega-parents
+
+            // Draw hierarchical connections (any node with megaParent reference)
+            parentNodes.forEach(p => {
+                if (p.megaParent) drawCurvedConnection(p.megaParent, p, 0.2);
+            });
+            // Draw connections between mega-parents (unchanged)
             for (let i = 0; i < megaParentNodes.length; i++) {
                 for (let j = i + 1; j < megaParentNodes.length; j++) {
                     drawCurvedConnection(megaParentNodes[i], megaParentNodes[j], 0.15);
