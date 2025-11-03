@@ -61,6 +61,27 @@ html
   <canvas id="c" width="1100" height="1100"></canvas>
   
   <div class="controls">
+    <div class="control-group" style="text-align: center; margin-bottom: 15px; font-style: italic; opacity: 0.9;">
+      Click anywhere to play a note
+    </div>
+    
+    <div class="control-group">
+      <label class="checkbox-label">
+        <input type="checkbox" id="enableSound" checked>
+        Enable Sound
+      </label>
+    </div>
+    
+    <div class="control-group">
+      <label>Instrument:</label>
+      <select id="instrumentSelect" style="width: 100%; padding: 5px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer;">
+        <option value="choir">Angelic Choir</option>
+        <option value="cello">Cello</option>
+        <option value="bansuri">Bansuri (Indian Flute)</option>
+        <option value="accordion">Accordion</option>
+      </select>
+    </div>
+    
     <div class="control-group">
       <label class="checkbox-label">
         <input type="checkbox" id="colorfulLines" checked>
@@ -120,8 +141,401 @@ html
     let maxActiveRipples = 1;
     let baseSpacingMultiplier = 0.75; // Start at 0.75 density
     let colorfulLines = true; // Toggle between colorful lines or grayscale lines
+    let soundEnabled = true;
+    let currentInstrument = 'choir';
+    
+    // Web Audio API setup
+    let audioContext = null;
+    let oscillators = [];
+    let gainNodes = [];
+    let masterGain = null;
+    let reverbNode = null;
+    let filterNode = null;
+    let lastOscillatorCheck = 0;
+    
+    function stopAllAmbientOscillators() {
+      oscillators.forEach(osc => {
+        try {
+          // Schedule stop slightly in the future to avoid clicks
+          osc.stop(audioContext.currentTime + 0.1);
+          osc.disconnect();
+        } catch(e) {
+          // Oscillator may already be stopped
+        }
+      });
+      gainNodes.forEach(gain => {
+        try {
+          gain.disconnect();
+        } catch(e) {}
+      });
+      oscillators = [];
+      gainNodes = [];
+    }
+    
+    function initAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        
+        // Create reverb using convolver
+        reverbNode = audioContext.createConvolver();
+        const reverbTime = 3;
+        const sampleRate = audioContext.sampleRate;
+        const length = sampleRate * reverbTime;
+        const impulse = audioContext.createBuffer(2, length, sampleRate);
+        
+        for (let channel = 0; channel < 2; channel++) {
+          const channelData = impulse.getChannelData(channel);
+          for (let i = 0; i < length; i++) {
+            channelData[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / length, 3);
+          }
+        }
+        reverbNode.buffer = impulse;
+        
+        // Soft lowpass filter for warmth
+        filterNode = audioContext.createBiquadFilter();
+        filterNode.type = 'lowpass';
+        filterNode.frequency.value = 2000;
+        filterNode.Q.value = 0.5;
+        
+        // Master gain
+        masterGain = audioContext.createGain();
+        masterGain.gain.value = 0.12;
+        
+        // Connect reverb and filter to output
+        filterNode.connect(reverbNode);
+        reverbNode.connect(masterGain);
+        masterGain.connect(audioContext.destination);
+      }
+      
+      startAmbientSound();
+    }
+    
+    function startAmbientSound() {
+      if (!audioContext) return;
+      
+      stopAllAmbientOscillators();
+      
+      const now = audioContext.currentTime;
+      
+      if (currentInstrument === 'choir') {
+        // Create choir voices - C major scale for angelic sound
+        const voiceFrequencies = [
+          261.63,  // C4
+          293.66,  // D4 - major second
+          329.63,  // E4 - major third
+          392.00,  // G4 - perfect fifth
+          523.25,  // C5 - octave
+          659.25,  // E5
+        ];
+        
+        voiceFrequencies.forEach((freq, index) => {
+          // Each voice has multiple oscillators for richness
+          for (let detuneAmount of [-3, 0, 3]) {
+            const osc = audioContext.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            osc.detune.value = detuneAmount;
+            
+            const gain = audioContext.createGain();
+            gain.gain.value = 0.03;
+            
+            osc.connect(gain);
+            gain.connect(filterNode);
+            osc.start(now);
+            
+            // Add event listener to detect if oscillator ends unexpectedly
+            osc.onended = () => {
+              console.warn('Oscillator ended unexpectedly! Frequency:', freq, 'Detune:', detuneAmount);
+            };
+            
+            oscillators.push(osc);
+            gainNodes.push(gain);
+          }
+        });
+      } else if (currentInstrument === 'cello') {
+        // Cello uses sawtooth wave - C major scale for warm, uplifting sound
+        const celloNotes = [65.41, 73.42, 82.41, 87.31, 98.00]; // C2, D2, E2, F2, G2
+        
+        celloNotes.forEach((freq, index) => {
+          // Main oscillator with sawtooth wave
+          const osc = audioContext.createOscillator();
+          osc.type = 'sawtooth';
+          osc.frequency.value = freq;
+          
+          const gain = audioContext.createGain();
+          gain.gain.value = 0.015; // Lower volume for sawtooth
+          
+          osc.connect(gain);
+          gain.connect(filterNode);
+          osc.start(now);
+          osc.onended = () => console.warn('Cello oscillator ended:', freq);
+          
+          oscillators.push(osc);
+          gainNodes.push(gain);
+          
+          // Add subtle detuned layer for warmth
+          const osc2 = audioContext.createOscillator();
+          osc2.type = 'sawtooth';
+          osc2.frequency.value = freq;
+          osc2.detune.value = 5; // Slight detune
+          
+          const gain2 = audioContext.createGain();
+          gain2.gain.value = 0.01;
+          
+          osc2.connect(gain2);
+          gain2.connect(filterNode);
+          osc2.start(now);
+          osc2.onended = () => console.warn('Cello oscillator 2 ended:', freq);
+          
+          oscillators.push(osc2);
+          gainNodes.push(gain2);
+        });
+      } else if (currentInstrument === 'bansuri') {
+        // Bansuri (Indian flute) - breathy, hollow tone with overtones
+        const bansuriNotes = [261.63, 293.66, 329.63, 392.00, 440.00]; // C4, D4, E4, G4, A4
+        
+        bansuriNotes.forEach((freq, index) => {
+          // Main tone - pure sine
+          const osc = audioContext.createOscillator();
+          osc.type = 'sine';
+          osc.frequency.value = freq;
+          
+          const gain = audioContext.createGain();
+          gain.gain.value = 0.02;
+          
+          osc.connect(gain);
+          gain.connect(filterNode);
+          osc.start(now);
+          
+          oscillators.push(osc);
+          gainNodes.push(gain);
+          
+          // Add breathy noise component for authentic bansuri sound
+          // Octave harmonic for hollowness
+          const harmonic = audioContext.createOscillator();
+          harmonic.type = 'sine';
+          harmonic.frequency.value = freq * 2.01; // Slightly detuned octave
+          
+          const harmonicGain = audioContext.createGain();
+          harmonicGain.gain.value = 0.008;
+          
+          harmonic.connect(harmonicGain);
+          harmonicGain.connect(filterNode);
+          harmonic.start(now);
+          
+          oscillators.push(harmonic);
+          gainNodes.push(harmonicGain);
+        });
+      } else if (currentInstrument === 'accordion') {
+        // Accordion - square wave with slight detune for reedy, vibrato character
+        const accordionNotes = [261.63, 293.66, 329.63, 392.00, 523.25]; // C4, D4, E4, G4, C5
+        
+        accordionNotes.forEach((freq, index) => {
+          // Main reedy voice
+          for (let detuneAmount of [-8, 0, 8]) {
+            const osc = audioContext.createOscillator();
+            osc.type = 'square';
+            osc.frequency.value = freq;
+            osc.detune.value = detuneAmount;
+            
+            const gain = audioContext.createGain();
+            gain.gain.value = 0.012;
+            
+            osc.connect(gain);
+            gain.connect(filterNode);
+            osc.start(now);
+            
+            oscillators.push(osc);
+            gainNodes.push(gain);
+          }
+        });
+      }
+    }
+    
+    function playRippleSound(x, y) {
+      if (!audioContext) return;
+      
+      // Map Y position (0 to H) to note selection - INVERTED: top = high notes, bottom = low notes
+      const normalizedY = 1 - (y / H); // 0 to 1, inverted so top = 1
+      
+      // Map X position (0 to W) to articulation - left = staccato (short), right = legato (long)
+      const normalizedX = x / W; // 0 to 1
+      
+      let notes, waveType, harmonics;
+      
+      if (currentInstrument === 'choir') {
+        // C major scale - extended range for smooth pitch gradient and angelic sound
+        notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99]; // C4 to G5
+        waveType = 'sine';
+        harmonics = [1, 2, 3]; // Fundamental, octave, fifth above octave
+      } else if (currentInstrument === 'cello') {
+        // C major scale - extended cello range for warm, uplifting character
+        notes = [65.41, 73.42, 82.41, 87.31, 98.00, 110.00, 123.47, 130.81, 146.83, 164.81, 174.61, 196.00]; // C2 to G3
+        waveType = 'sawtooth';
+        harmonics = [1]; // Sawtooth already has rich harmonics, don't need multiples
+      } else if (currentInstrument === 'bansuri') {
+        // C major scale - extended bansuri range for breathy, hollow sound
+        notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99]; // C4 to G5
+        waveType = 'sine';
+        harmonics = [1, 2.01]; // Fundamental and slightly detuned octave for hollow bansuri character
+      } else if (currentInstrument === 'accordion') {
+        // C major scale - extended accordion range for reedy sound
+        notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99]; // C4 to G5
+        waveType = 'square';
+        harmonics = [1]; // Square wave already has strong harmonics
+      }
+      
+      const noteIndex = Math.floor(normalizedY * notes.length);
+      const frequency = notes[Math.min(noteIndex, notes.length - 1)];
+      
+      const now = audioContext.currentTime;
+      const oscillatorsToCreate = [];
+      
+      harmonics.forEach((harmonic, idx) => {
+        const osc = audioContext.createOscillator();
+        osc.type = waveType;
+        osc.frequency.value = frequency * harmonic;
+        oscillatorsToCreate.push(osc);
+      });
+      
+      const rippleGain = audioContext.createGain();
+      
+      // X-axis controls articulation: left = staccato (short), right = legato (long)
+      // Duration ranges from 0.15s (very staccato) to 4s (very legato)
+      const noteDuration = 0.15 + (normalizedX * 3.85); // 0.15s to 4s
+      
+      // Different envelopes for different instruments with articulation control
+      if (currentInstrument === 'choir') {
+        const attackTime = 0.02 + (normalizedX * 0.08); // 0.02s to 0.1s attack
+        const decayTime = noteDuration * 0.3;
+        const sustainLevel = 0.1 + (normalizedX * 0.05); // Higher sustain for legato
+        const releaseTime = noteDuration * 0.7;
+        
+        rippleGain.gain.setValueAtTime(0, now);
+        rippleGain.gain.linearRampToValueAtTime(0.15, now + attackTime);
+        rippleGain.gain.linearRampToValueAtTime(sustainLevel, now + attackTime + decayTime);
+        rippleGain.gain.exponentialRampToValueAtTime(0.001, now + noteDuration);
+      } else if (currentInstrument === 'cello') {
+        const attackTime = 0.05 + (normalizedX * 0.2); // 0.05s to 0.25s bow attack
+        const decayTime = noteDuration * 0.2;
+        const sustainLevel = 0.08 + (normalizedX * 0.04);
+        const releaseTime = noteDuration * 0.8;
+        
+        rippleGain.gain.setValueAtTime(0, now);
+        rippleGain.gain.linearRampToValueAtTime(0.12, now + attackTime);
+        rippleGain.gain.linearRampToValueAtTime(sustainLevel, now + attackTime + decayTime);
+        rippleGain.gain.exponentialRampToValueAtTime(0.001, now + noteDuration);
+      } else if (currentInstrument === 'bansuri') {
+        const attackTime = 0.08 + (normalizedX * 0.12); // 0.08s to 0.2s breathy attack
+        const decayTime = noteDuration * 0.2;
+        const sustainLevel = 0.07 + (normalizedX * 0.03);
+        const releaseTime = noteDuration * 0.8;
+        
+        rippleGain.gain.setValueAtTime(0, now);
+        rippleGain.gain.linearRampToValueAtTime(0.13, now + attackTime); // Softer for breathy quality
+        rippleGain.gain.linearRampToValueAtTime(sustainLevel, now + attackTime + decayTime);
+        rippleGain.gain.exponentialRampToValueAtTime(0.001, now + noteDuration);
+      } else if (currentInstrument === 'accordion') {
+        const attackTime = 0.01 + (normalizedX * 0.03); // 0.01s to 0.04s quick bellows attack
+        const decayTime = noteDuration * 0.15;
+        const sustainLevel = 0.09 + (normalizedX * 0.05); // Strong sustain for accordion
+        const releaseTime = noteDuration * 0.85;
+        
+        rippleGain.gain.setValueAtTime(0, now);
+        rippleGain.gain.linearRampToValueAtTime(0.14, now + attackTime);
+        rippleGain.gain.linearRampToValueAtTime(sustainLevel, now + attackTime + decayTime);
+        rippleGain.gain.exponentialRampToValueAtTime(0.001, now + noteDuration);
+      }
+      
+      oscillatorsToCreate.forEach(osc => {
+        osc.connect(rippleGain);
+      });
+      rippleGain.connect(reverbNode);
+      
+      oscillatorsToCreate.forEach(osc => {
+        osc.start(now);
+        osc.stop(now + noteDuration);
+      });
+    }
+    
+    function updateSound() {
+      if (!soundEnabled || !audioContext) return;
+      
+      const time = audioContext.currentTime;
+      
+      // Aggressively check if oscillators are still playing every 1 second
+      if (time - lastOscillatorCheck > 1) {
+        lastOscillatorCheck = time;
+        
+        // If we have no oscillators but sound is enabled, restart immediately
+        if (oscillators.length === 0) {
+          console.log('Restarting ambient sound - oscillators were lost');
+          startAmbientSound();
+          return;
+        }
+        
+        // Also check if AudioContext got suspended and resume it
+        if (audioContext.state === 'suspended') {
+          console.log('Resuming suspended AudioContext');
+          audioContext.resume();
+        }
+      }
+      
+      const rippleCount = colorRipples.length;
+      const rippleIntensity = Math.min(rippleCount / 8, 1);
+      
+      // Smooth, slow modulation
+      const slowBreath = Math.sin(time * 0.15) * 0.5 + 0.5;
+      const microVariation = Math.sin(time * 0.4) * 0.2 + 0.8;
+      
+      // Gentle overall volume swell with ripples
+      const targetVolume = 0.12 + rippleIntensity * 0.08;
+      masterGain.gain.setTargetAtTime(targetVolume * slowBreath, time, 0.5);
+      
+      // Subtle filter opening with ripples
+      const targetFilter = 2000 + rippleIntensity * 1500;
+      filterNode.frequency.setTargetAtTime(targetFilter, time, 0.8);
+      
+      // Each voice breathes independently
+      gainNodes.forEach((gain, index) => {
+        const voiceIndex = Math.floor(index / 3);
+        const phase = voiceIndex * 0.8;
+        const breathPattern = Math.sin(time * 0.2 + phase) * 0.4 + 0.6;
+        const rippleBoost = 1 + rippleIntensity * 0.3;
+        const targetGain = 0.03 * breathPattern * microVariation * rippleBoost;
+        gain.gain.setTargetAtTime(targetGain, time, 0.4);
+      });
+      
+      // Very subtle frequency drift for organic feel
+      oscillators.forEach((osc, index) => {
+        const drift = Math.sin(time * 0.1 + index * 0.3) * 2;
+        const currentDetune = [-3, 0, 3][index % 3];
+        osc.detune.setTargetAtTime(currentDetune + drift, time, 0.6);
+      });
+    }
+    
+    // Continuously monitor and restart audio if needed (every 5 seconds to avoid excessive restarts)
+    setInterval(() => {
+      if (soundEnabled && audioContext) {
+        // Check AudioContext state
+        if (audioContext.state === 'suspended') {
+          console.log('AudioContext suspended, resuming...');
+          audioContext.resume();
+        }
+        
+        // Check if oscillators exist
+        if (oscillators.length === 0) {
+          console.log('No oscillators found, restarting ambient sound...');
+          startAmbientSound();
+        } else {
+          console.log('Audio check: ' + oscillators.length + ' oscillators running');
+        }
+      }
+    }, 5000);
     
     // Setup sliders and checkbox
+    const enableSoundCheckbox = document.getElementById('enableSound');
+    const instrumentSelect = document.getElementById('instrumentSelect');
     const colorfulLinesCheckbox = document.getElementById('colorfulLines');
     const lineSizeSlider = document.getElementById('lineSize');
     const minSpeedSlider = document.getElementById('minSpeed');
@@ -129,6 +543,25 @@ html
     const maxRipplesSlider = document.getElementById('maxRipples');
     const densitySlider = document.getElementById('density');
     const zoomControlSlider = document.getElementById('zoomControl');
+    
+    enableSoundCheckbox.addEventListener('change', (e) => {
+      soundEnabled = e.target.checked;
+      if (soundEnabled) {
+        initAudio();
+        if (audioContext.state === 'suspended') {
+          audioContext.resume();
+        }
+      } else if (audioContext) {
+        audioContext.suspend();
+      }
+    });
+    
+    instrumentSelect.addEventListener('change', (e) => {
+      currentInstrument = e.target.value;
+      if (soundEnabled && audioContext) {
+        startAmbientSound();
+      }
+    });
     
     colorfulLinesCheckbox.addEventListener('change', (e) => {
       colorfulLines = e.target.checked;
@@ -319,6 +752,11 @@ html
         age: 0,
         maxAge: 250
       });
+      
+      // Trigger sound for this ripple
+      if (soundEnabled && audioContext) {
+        playRippleSound(x, y);
+      }
     }
 
     // Add click handler to create waves
@@ -408,6 +846,9 @@ html
       
       t += minSpeed * baseSpeedMultiplier; // Use slider value
       ctx.clearRect(0, 0, W, H);
+      
+      // Update sound based on ripple activity
+      updateSound();
 
       // Update waves
       for (let i = waves.length - 1; i >= 0; i--) {
@@ -885,6 +1326,9 @@ html
       requestAnimationFrame(draw);
     }
 
+    // Initialize audio on page load
+    initAudio();
+    
     draw();
   </script>
 </body>
