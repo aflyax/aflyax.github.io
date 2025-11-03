@@ -12,16 +12,79 @@ html
       align-items: center;
       justify-content: center;
       height: 100vh;
+      font-family: Arial, sans-serif;
     }
     canvas {
       width: min(94vmin, 1100px);
       height: min(94vmin, 1100px);
       display: block;
     }
+    .controls {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 8px;
+      color: white;
+      min-width: 250px;
+    }
+    .control-group {
+      margin-bottom: 15px;
+    }
+    .control-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 12px;
+      opacity: 0.8;
+    }
+    .control-group input[type="range"] {
+      width: 100%;
+    }
+    .control-group .value {
+      display: inline-block;
+      margin-left: 10px;
+      font-weight: bold;
+    }
   </style>
 </head>
 <body>
   <canvas id="c" width="1100" height="1100"></canvas>
+  
+  <div class="controls">
+    <h3 style="margin-top: 0;">Controls</h3>
+    
+    <div class="control-group">
+      <label>Line Size: <span class="value" id="lineSizeValue">1.0x</span></label>
+      <input type="range" id="lineSize" min="0.5" max="2" step="0.1" value="1">
+    </div>
+    
+    <div class="control-group">
+      <label>Min Speed: <span class="value" id="minSpeedValue">0.01</span></label>
+      <input type="range" id="minSpeed" min="0.001" max="0.05" step="0.001" value="0.01">
+    </div>
+    
+    <div class="control-group">
+      <label>Max Speed Boost: <span class="value" id="maxSpeedValue">3.0x</span></label>
+      <input type="range" id="maxSpeed" min="1" max="8" step="0.5" value="3">
+    </div>
+    
+    <div class="control-group">
+      <label>Max Active Ripples: <span class="value" id="maxRipplesValue">4</span></label>
+      <input type="range" id="maxRipples" min="1" max="10" step="1" value="4">
+    </div>
+    
+    <div class="control-group">
+      <label>Density: <span class="value" id="densityValue">0.50</span></label>
+      <input type="range" id="density" min="0.125" max="1" step="0.025" value="0.5">
+    </div>
+    
+    <div class="control-group">
+      <label>Zoom: <span class="value" id="zoomValue">0.50</span></label>
+      <input type="range" id="zoomControl" min="0.125" max="1" step="0.025" value="0.5">
+    </div>
+  </div>
+  
   <script>
     const canvas = document.getElementById("c");
     const ctx = canvas.getContext("2d");
@@ -31,6 +94,51 @@ html
     let offsetX = 0, offsetY = 0;
     const baseSpacing = 15;
     let t = 0;
+    
+    // Control variables
+    let lineSizeMultiplier = 1;
+    let minSpeed = 0.01;
+    let maxSpeedBoost = 3;
+    let maxActiveRipples = 4;
+    let baseSpacingMultiplier = 0.5;
+    
+    // Setup sliders
+    const lineSizeSlider = document.getElementById('lineSize');
+    const minSpeedSlider = document.getElementById('minSpeed');
+    const maxSpeedSlider = document.getElementById('maxSpeed');
+    const maxRipplesSlider = document.getElementById('maxRipples');
+    const densitySlider = document.getElementById('density');
+    const zoomControlSlider = document.getElementById('zoomControl');
+    
+    lineSizeSlider.addEventListener('input', (e) => {
+      lineSizeMultiplier = parseFloat(e.target.value);
+      document.getElementById('lineSizeValue').textContent = lineSizeMultiplier.toFixed(1) + 'x';
+    });
+    
+    minSpeedSlider.addEventListener('input', (e) => {
+      minSpeed = parseFloat(e.target.value);
+      document.getElementById('minSpeedValue').textContent = minSpeed.toFixed(3);
+    });
+    
+    maxSpeedSlider.addEventListener('input', (e) => {
+      maxSpeedBoost = parseFloat(e.target.value);
+      document.getElementById('maxSpeedValue').textContent = maxSpeedBoost.toFixed(1) + 'x';
+    });
+    
+    maxRipplesSlider.addEventListener('input', (e) => {
+      maxActiveRipples = parseInt(e.target.value);
+      document.getElementById('maxRipplesValue').textContent = maxActiveRipples;
+    });
+    
+    densitySlider.addEventListener('input', (e) => {
+      baseSpacingMultiplier = parseFloat(e.target.value);
+      document.getElementById('densityValue').textContent = baseSpacingMultiplier.toFixed(2);
+    });
+    
+    zoomControlSlider.addEventListener('input', (e) => {
+      zoom = parseFloat(e.target.value);
+      document.getElementById('zoomValue').textContent = zoom.toFixed(2);
+    });
 
     // Store active wave influences
     const waves = [];
@@ -139,7 +247,7 @@ html
       // Calculate base speed multiplier from speed waves
       let baseSpeedMultiplier = 1;
       
-      t += 0.01 * baseSpeedMultiplier; // Reduced from 0.02 for slower motion
+      t += minSpeed * baseSpeedMultiplier; // Use slider value
       ctx.clearRect(0, 0, W, H);
 
       // Update waves
@@ -186,7 +294,7 @@ html
       }
       
       // Occasionally spawn new speed waves
-      if (Math.random() < 0.008 && speedWaves.length < 4) {
+      if (Math.random() < 0.008 && speedWaves.length < maxActiveRipples) {
         createSpeedWave();
       }
       
@@ -226,7 +334,7 @@ html
       }
       
       // Calculate visible grid based on zoom
-      const spacing = baseSpacing / zoom;
+      const spacing = (baseSpacing / zoom) / baseSpacingMultiplier;
       const cols = Math.ceil(W / spacing) + 2;
       const rows = Math.ceil(H / spacing) + 2;
       const startCol = Math.floor(offsetX / spacing);
@@ -281,7 +389,7 @@ html
             const fadeOut = Math.sin(progress * Math.PI); // Fade in and out
             const smoothFadeOut = fadeOut * fadeOut; // Square for smoother fade
             const speedBoost = smoothFalloff * smoothFadeOut * sw.strength;
-            speedMult = Math.max(speedMult, 1 + speedBoost * 0.5); // Reduced intensity
+            speedMult = Math.max(speedMult, 1 + speedBoost * 0.5 * (maxSpeedBoost / 3)); // Use slider value
           }
         }
         
@@ -397,7 +505,7 @@ html
 
           // magnitude / brightness
           const mag = (Math.sin(gridX * 0.25 + speedT * 1.1) + Math.cos(gridY * 0.21 - speedT * 1.3)) * 0.35 + 0.65;
-          const len = (12 + mag * 16) * weatherSizeEffect / zoom; // Apply weather size effect
+          const len = (12 + mag * 16) * weatherSizeEffect * lineSizeMultiplier / zoom; // Apply line size multiplier
 
           // position offset (makes it look liquid)
           const ox = Math.sin(speedT * 0.7 + gridY * 0.3) * 4;
@@ -444,7 +552,7 @@ html
             ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${40 + mag*35}%, ${0.6 + mag*0.4})`;
           }
           
-          ctx.lineWidth = (1.8 - mag * 0.6) / zoom;
+          ctx.lineWidth = (1.8 - mag * 0.6) * lineSizeMultiplier / zoom;
 
           ctx.beginPath();
           ctx.moveTo(x1, y1);
@@ -453,7 +561,7 @@ html
 
           // little head on the end
           ctx.beginPath();
-          ctx.arc(x2, y2, (1.4 + mag*1.1) / zoom, 0, Math.PI*2);
+          ctx.arc(x2, y2, (1.4 + mag*1.1) * lineSizeMultiplier / zoom, 0, Math.PI*2);
           
           if (rippleStrength > 0) {
             const bwValue = mag * 100;
