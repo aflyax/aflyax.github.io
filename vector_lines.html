@@ -62,7 +62,7 @@ html
   
   <div class="controls">
     <div class="control-group" style="text-align: center; margin-bottom: 15px; font-style: italic; opacity: 0.9;">
-      Click anywhere to play a note
+      Click/drag anywhere to play notes
     </div>
     
     <div class="control-group">
@@ -95,8 +95,8 @@ html
     </div>
     
     <div class="control-group">
-      <label>Min Speed: <span class="value" id="minSpeedValue">0.02</span></label>
-      <input type="range" id="minSpeed" min="0.001" max="0.05" step="0.001" value="0.02">
+      <label>Min Speed: <span class="value" id="minSpeedValue">0.04</span></label>
+      <input type="range" id="minSpeed" min="0.001" max="0.05" step="0.001" value="0.04">
     </div>
     
     <div class="control-group">
@@ -118,10 +118,6 @@ html
       <label>Zoom: <span class="value" id="zoomValue">1.00</span></label>
       <input type="range" id="zoomControl" min="0.125" max="1" step="0.025" value="1">
     </div>
-    
-    <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2); font-size: 11px; opacity: 0.7; text-align: center;">
-      Click and drag anywhere to produce ripples
-    </div>
   </div>
   
   <script>
@@ -136,7 +132,7 @@ html
     
     // Control variables
     let lineSizeMultiplier = 1; // Start at 1x line size
-    let minSpeed = 0.02;
+    let minSpeed = 0.04;
     let maxSpeedBoost = 1.1;
     let maxActiveRipples = 1;
     let baseSpacingMultiplier = 0.75; // Start at 0.75 density
@@ -152,8 +148,16 @@ html
     let reverbNode = null;
     let filterNode = null;
     let lastOscillatorCheck = 0;
+    let soundRestartTimer = null;
+    let lastSoundStartTime = 0;
     
     function stopAllAmbientOscillators() {
+      // Clear any existing restart timer
+      if (soundRestartTimer) {
+        clearTimeout(soundRestartTimer);
+        soundRestartTimer = null;
+      }
+      
       oscillators.forEach(osc => {
         try {
           // Schedule stop slightly in the future to avoid clicks
@@ -191,15 +195,15 @@ html
         }
         reverbNode.buffer = impulse;
         
-        // Soft lowpass filter for warmth
+        // Soft lowpass filter for warmth - higher cutoff for more shimmer
         filterNode = audioContext.createBiquadFilter();
         filterNode.type = 'lowpass';
-        filterNode.frequency.value = 2000;
-        filterNode.Q.value = 0.5;
+        filterNode.frequency.value = 3500;
+        filterNode.Q.value = 0.3; // Gentler slope for smoother sound
         
         // Master gain
         masterGain = audioContext.createGain();
-        masterGain.gain.value = 0.12;
+        masterGain.gain.value = 0.15; // Slightly louder for fuller presence
         
         // Connect reverb and filter to output
         filterNode.connect(reverbNode);
@@ -216,32 +220,55 @@ html
       stopAllAmbientOscillators();
       
       const now = audioContext.currentTime;
+      lastSoundStartTime = Date.now();
+      
+      // Schedule automatic restart after exactly 2 minutes (120 seconds)
+      soundRestartTimer = setTimeout(() => {
+        console.log('2 minutes elapsed - restarting ambient sound');
+        if (soundEnabled && audioContext) {
+          startAmbientSound();
+        }
+      }, 120000); // 120,000 milliseconds = 2 minutes
+      
+      console.log('Starting ambient sound - will restart in 2 minutes');
       
       if (currentInstrument === 'choir') {
-        // Create choir voices - C major scale for angelic sound
+        // Create choir voices - Rich C major chord with perfect intervals for angelic sound
+        // Using C major triad (C-E-G) with octaves and fifths for harmonic richness
         const voiceFrequencies = [
-          261.63,  // C4
-          293.66,  // D4 - major second
-          329.63,  // E4 - major third
-          392.00,  // G4 - perfect fifth
-          523.25,  // C5 - octave
-          659.25,  // E5
+          130.81,  // C3 - Deep foundation
+          164.81,  // E3 - Third
+          196.00,  // G3 - Fifth
+          261.63,  // C4 - Root (middle)
+          329.63,  // E4 - Third (middle)
+          392.00,  // G4 - Fifth (middle)
+          523.25,  // C5 - High octave for brightness
         ];
         
         voiceFrequencies.forEach((freq, index) => {
-          // Each voice has multiple oscillators for richness
-          for (let detuneAmount of [-3, 0, 3]) {
+          // Each voice has multiple oscillators for lush chorus effect
+          // Using smaller detune amounts for smoother blend
+          for (let detuneAmount of [-2, -0.5, 0, 0.5, 2]) {
             const osc = audioContext.createOscillator();
             osc.type = 'sine';
             osc.frequency.value = freq;
             osc.detune.value = detuneAmount;
             
             const gain = audioContext.createGain();
-            gain.gain.value = 0.03;
+            // Lower individual volume since we have more oscillators
+            // Emphasize middle voices, softer on extremes
+            if (freq < 200) {
+              gain.gain.value = 0.015; // Subtle bass
+            } else if (freq > 500) {
+              gain.gain.value = 0.018; // Gentle high shimmer
+            } else {
+              gain.gain.value = 0.022; // Strong middle presence
+            }
             
             osc.connect(gain);
             gain.connect(filterNode);
             osc.start(now);
+            // Don't schedule stop - let oscillators run continuously until manually stopped
             
             // Add event listener to detect if oscillator ends unexpectedly
             osc.onended = () => {
@@ -253,8 +280,8 @@ html
           }
         });
       } else if (currentInstrument === 'cello') {
-        // Cello uses sawtooth wave - C major scale for warm, uplifting sound
-        const celloNotes = [65.41, 73.42, 82.41, 87.31, 98.00]; // C2, D2, E2, F2, G2
+        // Cello uses sawtooth wave - C major diatonic scale
+        const celloNotes = [65.41, 73.42, 82.41, 87.31, 98.00, 110.00]; // C2, D2, E2, F2, G2, A2
         
         celloNotes.forEach((freq, index) => {
           // Main oscillator with sawtooth wave
@@ -268,6 +295,7 @@ html
           osc.connect(gain);
           gain.connect(filterNode);
           osc.start(now);
+          // Don't schedule stop - let oscillators run continuously
           osc.onended = () => console.warn('Cello oscillator ended:', freq);
           
           oscillators.push(osc);
@@ -285,14 +313,15 @@ html
           osc2.connect(gain2);
           gain2.connect(filterNode);
           osc2.start(now);
+          // Don't schedule stop - let oscillators run continuously
           osc2.onended = () => console.warn('Cello oscillator 2 ended:', freq);
           
           oscillators.push(osc2);
           gainNodes.push(gain2);
         });
       } else if (currentInstrument === 'bansuri') {
-        // Bansuri (Indian flute) - breathy, hollow tone with overtones
-        const bansuriNotes = [261.63, 293.66, 329.63, 392.00, 440.00]; // C4, D4, E4, G4, A4
+        // Bansuri (Indian flute) - C major diatonic scale
+        const bansuriNotes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00]; // C4, D4, E4, F4, G4, A4
         
         bansuriNotes.forEach((freq, index) => {
           // Main tone - pure sine
@@ -306,6 +335,7 @@ html
           osc.connect(gain);
           gain.connect(filterNode);
           osc.start(now);
+          // Don't schedule stop - let oscillators run continuously
           
           oscillators.push(osc);
           gainNodes.push(gain);
@@ -322,13 +352,14 @@ html
           harmonic.connect(harmonicGain);
           harmonicGain.connect(filterNode);
           harmonic.start(now);
+          // Don't schedule stop - let oscillators run continuously
           
           oscillators.push(harmonic);
           gainNodes.push(harmonicGain);
         });
       } else if (currentInstrument === 'accordion') {
-        // Accordion - square wave with slight detune for reedy, vibrato character
-        const accordionNotes = [261.63, 293.66, 329.63, 392.00, 523.25]; // C4, D4, E4, G4, C5
+        // Accordion - C major diatonic scale
+        const accordionNotes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00]; // C4, D4, E4, F4, G4, A4
         
         accordionNotes.forEach((freq, index) => {
           // Main reedy voice
@@ -344,6 +375,7 @@ html
             osc.connect(gain);
             gain.connect(filterNode);
             osc.start(now);
+            // Don't schedule stop - let oscillators run continuously
             
             oscillators.push(osc);
             gainNodes.push(gain);
@@ -364,23 +396,23 @@ html
       let notes, waveType, harmonics;
       
       if (currentInstrument === 'choir') {
-        // C major scale - extended range for smooth pitch gradient and angelic sound
-        notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99]; // C4 to G5
+        // C major diatonic scale - pure stepwise motion for angelic sound
+        notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99]; // C4-D4-E4-F4-G4-A4-B4-C5-D5-E5-F5-G5
         waveType = 'sine';
         harmonics = [1, 2, 3]; // Fundamental, octave, fifth above octave
       } else if (currentInstrument === 'cello') {
-        // C major scale - extended cello range for warm, uplifting character
-        notes = [65.41, 73.42, 82.41, 87.31, 98.00, 110.00, 123.47, 130.81, 146.83, 164.81, 174.61, 196.00]; // C2 to G3
+        // C major diatonic scale - extended cello range
+        notes = [65.41, 73.42, 82.41, 87.31, 98.00, 110.00, 123.47, 130.81, 146.83, 164.81, 174.61, 196.00]; // C2-D2-E2-F2-G2-A2-B2-C3-D3-E3-F3-G3
         waveType = 'sawtooth';
         harmonics = [1]; // Sawtooth already has rich harmonics, don't need multiples
       } else if (currentInstrument === 'bansuri') {
-        // C major scale - extended bansuri range for breathy, hollow sound
-        notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99]; // C4 to G5
+        // C major diatonic scale - extended bansuri range
+        notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99]; // C4-D4-E4-F4-G4-A4-B4-C5-D5-E5-F5-G5
         waveType = 'sine';
         harmonics = [1, 2.01]; // Fundamental and slightly detuned octave for hollow bansuri character
       } else if (currentInstrument === 'accordion') {
-        // C major scale - extended accordion range for reedy sound
-        notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99]; // C4 to G5
+        // C major diatonic scale - extended accordion range
+        notes = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, 587.33, 659.25, 698.46, 783.99]; // C4-D4-E4-F4-G4-A4-B4-C5-D5-E5-F5-G5
         waveType = 'square';
         harmonics = [1]; // Square wave already has strong harmonics
       }
@@ -484,33 +516,45 @@ html
       const rippleCount = colorRipples.length;
       const rippleIntensity = Math.min(rippleCount / 8, 1);
       
-      // Smooth, slow modulation
-      const slowBreath = Math.sin(time * 0.15) * 0.5 + 0.5;
-      const microVariation = Math.sin(time * 0.4) * 0.2 + 0.8;
+      // Smooth, slow modulation - even more gentle
+      const slowBreath = Math.sin(time * 0.12) * 0.3 + 0.7; // Slower, less variation
+      const microVariation = Math.sin(time * 0.3) * 0.15 + 0.85; // Subtler fluctuation
       
       // Gentle overall volume swell with ripples
-      const targetVolume = 0.12 + rippleIntensity * 0.08;
-      masterGain.gain.setTargetAtTime(targetVolume * slowBreath, time, 0.5);
+      const targetVolume = 0.15 + rippleIntensity * 0.06; // Adjusted for new base volume
+      masterGain.gain.setTargetAtTime(targetVolume * slowBreath, time, 0.6); // Slower transition
       
-      // Subtle filter opening with ripples
-      const targetFilter = 2000 + rippleIntensity * 1500;
-      filterNode.frequency.setTargetAtTime(targetFilter, time, 0.8);
+      // Subtle filter opening with ripples - wider range for more air
+      const targetFilter = 3500 + rippleIntensity * 2000; // More shimmer with ripples
+      filterNode.frequency.setTargetAtTime(targetFilter, time, 1.0); // Very smooth transition
       
-      // Each voice breathes independently
+      // Each voice breathes independently with more variety
       gainNodes.forEach((gain, index) => {
-        const voiceIndex = Math.floor(index / 3);
-        const phase = voiceIndex * 0.8;
-        const breathPattern = Math.sin(time * 0.2 + phase) * 0.4 + 0.6;
-        const rippleBoost = 1 + rippleIntensity * 0.3;
-        const targetGain = 0.03 * breathPattern * microVariation * rippleBoost;
-        gain.gain.setTargetAtTime(targetGain, time, 0.4);
+        const voiceIndex = Math.floor(index / 5); // Updated for 5 detuned oscillators per note
+        const phase = voiceIndex * 0.6;
+        const breathPattern = Math.sin(time * 0.18 + phase) * 0.3 + 0.7; // Gentler breathing
+        const rippleBoost = 1 + rippleIntensity * 0.25;
+        
+        // Differentiate gain based on frequency range
+        let baseGain;
+        if (voiceIndex < 3) {
+          baseGain = 0.015; // Bass voices
+        } else if (voiceIndex > 5) {
+          baseGain = 0.018; // High voices
+        } else {
+          baseGain = 0.022; // Middle voices
+        }
+        
+        const targetGain = baseGain * breathPattern * microVariation * rippleBoost;
+        gain.gain.setTargetAtTime(targetGain, time, 0.5);
       });
       
-      // Very subtle frequency drift for organic feel
+      // Very subtle frequency drift for organic feel - less drift for stability
       oscillators.forEach((osc, index) => {
-        const drift = Math.sin(time * 0.1 + index * 0.3) * 2;
-        const currentDetune = [-3, 0, 3][index % 3];
-        osc.detune.setTargetAtTime(currentDetune + drift, time, 0.6);
+        const drift = Math.sin(time * 0.08 + index * 0.25) * 1.5; // Smaller drift
+        const detuneIndex = index % 5; // Updated for 5 detune values
+        const currentDetune = [-2, -0.5, 0, 0.5, 2][detuneIndex];
+        osc.detune.setTargetAtTime(currentDetune + drift, time, 0.8); // Slower drift
       });
     }
     
@@ -528,7 +572,9 @@ html
           console.log('No oscillators found, restarting ambient sound...');
           startAmbientSound();
         } else {
-          console.log('Audio check: ' + oscillators.length + ' oscillators running');
+          const elapsed = Math.floor((Date.now() - lastSoundStartTime) / 1000);
+          const remaining = 120 - elapsed;
+          console.log('Audio check: ' + oscillators.length + ' oscillators running. Time until restart: ' + remaining + 's');
         }
       }
     }, 5000);
