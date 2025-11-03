@@ -76,7 +76,7 @@ html
       <label>Instrument:</label>
       <select id="instrumentSelect" style="width: 100%; padding: 5px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer;">
         <option value="choir">Angelic Choir</option>
-        <option value="cello">Cello</option>
+        <option value="cello" selected>Cello</option>
         <option value="bansuri">Bansuri (Indian Flute)</option>
         <option value="accordion">Accordion</option>
       </select>
@@ -105,11 +105,6 @@ html
     </div>
     
     <div class="control-group">
-      <label>Max Active Ripples: <span class="value" id="maxRipplesValue">1</span></label>
-      <input type="range" id="maxRipples" min="1" max="10" step="1" value="1">
-    </div>
-    
-    <div class="control-group">
       <label>Density: <span class="value" id="densityValue">0.75</span></label>
       <input type="range" id="density" min="0.125" max="1" step="0.025" value="0.75">
     </div>
@@ -134,11 +129,10 @@ html
     let lineSizeMultiplier = 1; // Start at 1x line size
     let minSpeed = 0.04;
     let maxSpeedBoost = 1.1;
-    let maxActiveRipples = 1;
     let baseSpacingMultiplier = 0.75; // Start at 0.75 density
     let colorfulLines = true; // Toggle between colorful lines or grayscale lines
     let soundEnabled = true;
-    let currentInstrument = 'choir';
+    let currentInstrument = 'cello'; // Default to cello
     
     // Web Audio API setup
     let audioContext = null;
@@ -586,7 +580,6 @@ html
     const lineSizeSlider = document.getElementById('lineSize');
     const minSpeedSlider = document.getElementById('minSpeed');
     const maxSpeedSlider = document.getElementById('maxSpeed');
-    const maxRipplesSlider = document.getElementById('maxRipples');
     const densitySlider = document.getElementById('density');
     const zoomControlSlider = document.getElementById('zoomControl');
     
@@ -628,11 +621,6 @@ html
       document.getElementById('maxSpeedValue').textContent = maxSpeedBoost.toFixed(1) + 'x';
     });
     
-    maxRipplesSlider.addEventListener('input', (e) => {
-      maxActiveRipples = parseInt(e.target.value);
-      document.getElementById('maxRipplesValue').textContent = maxActiveRipples;
-    });
-    
     densitySlider.addEventListener('input', (e) => {
       baseSpacingMultiplier = parseFloat(e.target.value);
       document.getElementById('densityValue').textContent = baseSpacingMultiplier.toFixed(2);
@@ -667,16 +655,7 @@ html
         maxAge: 600 + Math.random() * 400 // More consistent duration
       });
       
-      // Play sound for spontaneous ripple at spawn position
-      if (soundEnabled && audioContext) {
-        // Use the actual spawn position for the note
-        playRippleSound(x, Math.max(0, y + 200)); // Offset y to be within canvas range
-      }
-    }
-    
-    // Start with some speed waves
-    for (let i = 0; i < 2; i++) {
-      createSpeedWave();
+      // Don't play sound for spontaneous ripples anymore (melody system handles music)
     }
     
     // Weather patterns
@@ -781,18 +760,86 @@ html
     // Start with one color wave source
     createColorWaveSource();
     
+    // Melody system - Pachelbel's Canon in D
+    const melodies = [
+      // Pachelbel's Canon - Main melody (simplified, flowing version)
+      // Famous baroque piece with gentle, flowing character
+      // x-axis controls articulation/duration: left = short/staccato, right = long/legato
+      [
+        // Opening phrase - all whole notes for smooth, sustained character
+        { noteIndex: 3, x: 0.85 }, // F# - (whole note)
+        { noteIndex: 2, x: 0.85 }, // E - (whole note)
+        { noteIndex: 1, x: 0.85 }, // D - (whole note)
+        { noteIndex: 0, x: 0.85 }, // C# - (whole note)
+        
+        // Second phrase - continuing the sustained flow
+        { noteIndex: 6, x: 0.85 }, // B - (whole note)
+        { noteIndex: 5, x: 0.85 }, // A - (whole note)
+        { noteIndex: 6, x: 0.85 }, // B - (whole note)
+        { noteIndex: 0, x: 0.85 }, // C# - (whole note)
+        
+        // Third phrase - building up
+        { noteIndex: 3, x: 0.65 }, // F# - (half note)
+        { noteIndex: 4, x: 0.65 }, // G - (half note)
+        { noteIndex: 5, x: 0.65 }, // A - (half note)
+        { noteIndex: 4, x: 0.65 }, // G - (half note)
+        
+        // Fourth phrase - more active with quarter notes
+        { noteIndex: 3, x: 0.4 },  // F# - (quarter)
+        { noteIndex: 2, x: 0.4 },  // E - (quarter)
+        { noteIndex: 1, x: 0.4 },  // D - (quarter)
+        { noteIndex: 0, x: 0.85 }, // C# - (whole note - resolution)
+      ],
+    ];
+    
+    let currentMelodyIndex = 0;
+    let currentNoteInMelody = 0;
+    let lastMelodyNoteTime = Date.now();
+    const timeBetweenNotes = 800; // milliseconds between notes
+    
+    function playNextMelodyNote() {
+      // Don't play melody if sound is disabled
+      if (!soundEnabled) return;
+      
+      const now = Date.now();
+      if (now - lastMelodyNoteTime < timeBetweenNotes) return;
+      
+      const melody = melodies[currentMelodyIndex];
+      const note = melody[currentNoteInMelody];
+      
+      // Map note index to Y position (0 = high, 11 = low for 12-note scale)
+      // Invert so lower noteIndex = higher pitch = lower Y value
+      const normalizedY = 1 - (note.noteIndex / 11); // 0 to 1
+      const y = H * normalizedY;
+      const x = W * note.x;
+      
+      // Create ripple at this position
+      createRipple(x, y);
+      
+      // Move to next note
+      currentNoteInMelody++;
+      lastMelodyNoteTime = now;
+      
+      // If melody finished, move to next melody after a pause
+      if (currentNoteInMelody >= melody.length) {
+        currentNoteInMelody = 0;
+        currentMelodyIndex = (currentMelodyIndex + 1) % melodies.length;
+        lastMelodyNoteTime = now + 1200; // Extra pause between melodies
+      }
+    }
+    
     // Function to create a ripple at a specific location
     function createRipple(x, y) {
       // Random direction for asymmetric spread
       const direction = Math.random() * Math.PI * 2;
-      const directionalBias = 0.5 + Math.random() * 0.8; // 0.5 to 1.3 bias strength - much stronger asymmetry
+      const directionalBias = 0.3 + Math.random() * 0.4; // 0.3 to 0.7 bias strength - gentler asymmetry
       
       colorRipples.push({
         x: x,
         y: y,
         age: 0,
-        maxAge: 200,
-        waveSpeed: 5,
+        maxAge: 120, // Faster recovery (was 200)
+        waveSpeed: 6, // Faster wave speed (was 5)
         direction: direction, // Direction of faster spread
         directionalBias: directionalBias // How much faster in that direction
       });
@@ -802,10 +849,10 @@ html
         y: y,
         vx: 0,
         vy: 0,
-        radius: 500,
-        strength: 3,
+        radius: 350, // Smaller radius (was 500)
+        strength: 1.5, // Much gentler strength (was 3)
         age: 0,
-        maxAge: 250
+        maxAge: 150 // Faster recovery (was 250)
       });
       
       // Trigger sound for this ripple
@@ -904,6 +951,9 @@ html
       
       // Update sound based on ripple activity
       updateSound();
+      
+      // Play melody notes
+      playNextMelodyNote();
 
       // Update waves
       for (let i = waves.length - 1; i >= 0; i--) {
@@ -942,16 +992,10 @@ html
         
         if (sw.y > H + 400 || sw.age > sw.maxAge) {
           speedWaves.splice(i, 1);
-          if (Math.random() < 0.4) {
-            createSpeedWave();
-          }
         }
       }
       
-      // Occasionally spawn new speed waves
-      if (Math.random() < 0.004 && speedWaves.length < maxActiveRipples) { // Less frequent spawning
-        createSpeedWave();
-      }
+      // Don't spawn random speed waves anymore - only from melody and user interaction
       
       // Update weather patterns
       for (let i = weatherPatterns.length - 1; i >= 0; i--) {
@@ -1323,21 +1367,21 @@ html
           let finalHue, finalSat, finalLight;
           
           if (colorfulLines) {
-            // Colorful lines mode: ripple enhances color (brighter, more saturated)
+            // Colorful lines mode: ripple creates grayscale contrast
             if (rippleStrength > 0) {
-              // Increase saturation and brightness in the ripple
-              const boostedSat = saturation + (rippleStrength * 40); // Add up to 40% saturation
-              const boostedLight = (60 + mag*25) + (rippleStrength * 20); // Add up to 20% brightness
-              ctx.strokeStyle = `hsla(${hue}, ${boostedSat}%, ${boostedLight}%, ${0.6 + mag*0.4})`;
+              // Ripple shows as bright grayscale in color mode
+              const boostedLight = (60 + mag*25) + (rippleStrength * 25); // Add up to 25% brightness
+              ctx.strokeStyle = `hsla(0, 0%, ${boostedLight}%, ${0.6 + mag*0.4})`;
             } else {
               ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${60 + mag*25}%, ${0.6 + mag*0.4})`;
             }
           } else {
-            // Grayscale lines mode: ripple creates brighter grayscale
+            // Grayscale lines mode: ripple brings color
             if (rippleStrength > 0) {
-              // Increase brightness in the ripple
-              const boostedLight = (60 + mag*25) + (rippleStrength * 25); // Add up to 25% brightness
-              ctx.strokeStyle = `hsla(0, 0%, ${boostedLight}%, ${0.6 + mag*0.4})`;
+              // Ripple shows as color in grayscale mode
+              const boostedSat = saturation + (rippleStrength * 40); // Add up to 40% saturation
+              const boostedLight = (60 + mag*25) + (rippleStrength * 20); // Add up to 20% brightness
+              ctx.strokeStyle = `hsla(${hue}, ${boostedSat}%, ${boostedLight}%, ${0.6 + mag*0.4})`;
             } else {
               // Grayscale
               ctx.strokeStyle = `hsla(0, 0%, ${60 + mag*25}%, ${0.6 + mag*0.4})`;
@@ -1356,19 +1400,21 @@ html
           ctx.arc(x2, y2, (1.4 + mag*1.1) * lineSizeMultiplier / zoom, 0, Math.PI*2);
           
           if (colorfulLines) {
-            // Colorful lines mode: ripple enhances color
+            // Colorful lines mode: ripple creates grayscale contrast
             if (rippleStrength > 0) {
-              const boostedSat = (saturation + 15) + (rippleStrength * 45); // Add up to 45% saturation
-              const boostedLight = (65 + mag*25) + (rippleStrength * 20); // Add up to 20% brightness
-              ctx.fillStyle = `hsla(${hue}, ${boostedSat}%, ${boostedLight}%, ${0.5 + mag*0.4})`;
+              // Ripple shows as bright grayscale in color mode
+              const boostedLight = (65 + mag*25) + (rippleStrength * 25); // Add up to 25% brightness
+              ctx.fillStyle = `hsla(0, 0%, ${boostedLight}%, ${0.5 + mag*0.4})`;
             } else {
               ctx.fillStyle = `hsla(${hue}, ${saturation + 15}%, ${65 + mag*25}%, ${0.5 + mag*0.4})`;
             }
           } else {
-            // Grayscale lines mode: ripple creates brighter grayscale
+            // Grayscale lines mode: ripple brings color
             if (rippleStrength > 0) {
-              const boostedLight = (65 + mag*25) + (rippleStrength * 25); // Add up to 25% brightness
-              ctx.fillStyle = `hsla(0, 0%, ${boostedLight}%, ${0.5 + mag*0.4})`;
+              // Ripple shows as color in grayscale mode
+              const boostedSat = (saturation + 15) + (rippleStrength * 45); // Add up to 45% saturation
+              const boostedLight = (65 + mag*25) + (rippleStrength * 20); // Add up to 20% brightness
+              ctx.fillStyle = `hsla(${hue}, ${boostedSat}%, ${boostedLight}%, ${0.5 + mag*0.4})`;
             } else {
               // Grayscale
               ctx.fillStyle = `hsla(0, 0%, ${65 + mag*25}%, ${0.5 + mag*0.4})`;
