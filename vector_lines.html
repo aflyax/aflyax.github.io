@@ -75,13 +75,18 @@ html
     </div>
     
     <div class="control-group">
-      <label>Density: <span class="value" id="densityValue">0.50</span></label>
-      <input type="range" id="density" min="0.125" max="1" step="0.025" value="0.5">
+      <label>Density: <span class="value" id="densityValue">1.00</span></label>
+      <input type="range" id="density" min="0.125" max="1" step="0.025" value="1">
     </div>
     
     <div class="control-group">
-      <label>Zoom: <span class="value" id="zoomValue">0.50</span></label>
-      <input type="range" id="zoomControl" min="0.125" max="1" step="0.025" value="0.5">
+      <label>Zoom: <span class="value" id="zoomValue">1.00</span></label>
+      <input type="range" id="zoomControl" min="0.125" max="1" step="0.025" value="1">
+    </div>
+    
+    <div class="control-group">
+      <label>Color Wave Frequency: <span class="value" id="colorWaveFreqValue">0.50</span></label>
+      <input type="range" id="colorWaveFreq" min="0" max="1" step="0.05" value="0.5">
     </div>
   </div>
   
@@ -90,17 +95,18 @@ html
     const ctx = canvas.getContext("2d");
     const W = canvas.width, H = canvas.height;
 
-    let zoom = 0.5; // Start at mid density (halfway between max 1 and min 0.125)
+    let zoom = 1.0; // Start at max zoom out (1.0)
     let offsetX = 0, offsetY = 0;
     const baseSpacing = 15;
     let t = 0;
     
     // Control variables
-    let lineSizeMultiplier = 1;
+    let lineSizeMultiplier = 1; // Start at 1x line size
     let minSpeed = 0.01;
     let maxSpeedBoost = 3;
     let maxActiveRipples = 4;
-    let baseSpacingMultiplier = 0.5;
+    let baseSpacingMultiplier = 1; // Start at max density
+    let colorWaveFrequency = 0.5; // Color wave spawn frequency
     
     // Setup sliders
     const lineSizeSlider = document.getElementById('lineSize');
@@ -109,6 +115,7 @@ html
     const maxRipplesSlider = document.getElementById('maxRipples');
     const densitySlider = document.getElementById('density');
     const zoomControlSlider = document.getElementById('zoomControl');
+    const colorWaveFreqSlider = document.getElementById('colorWaveFreq');
     
     lineSizeSlider.addEventListener('input', (e) => {
       lineSizeMultiplier = parseFloat(e.target.value);
@@ -139,6 +146,11 @@ html
       zoom = parseFloat(e.target.value);
       document.getElementById('zoomValue').textContent = zoom.toFixed(2);
     });
+    
+    colorWaveFreqSlider.addEventListener('input', (e) => {
+      colorWaveFrequency = parseFloat(e.target.value);
+      document.getElementById('colorWaveFreqValue').textContent = colorWaveFrequency.toFixed(2);
+    });
 
     // Store active wave influences
     const waves = [];
@@ -153,12 +165,12 @@ html
       speedWaves.push({
         x: Math.random() * W,
         y: -200,
-        vx: (Math.random() - 0.5) * 1.5,
-        vy: 1.5 + Math.random() * 2,
-        radius: 250 + Math.random() * 350,
-        strength: 1.5 + Math.random() * 2.5, // Reduced strength
+        vx: (Math.random() - 0.5) * 0.8, // Reduced horizontal drift
+        vy: 0.8 + Math.random() * 1.5, // Slower vertical movement
+        radius: 300 + Math.random() * 250, // More consistent size
+        strength: 1.2 + Math.random() * 1.5, // More moderate strength
         age: 0,
-        maxAge: 500 + Math.random() * 500 // Longer duration for smoother transitions
+        maxAge: 600 + Math.random() * 400 // More consistent duration
       });
     }
     
@@ -178,12 +190,12 @@ html
         type: type,
         x: Math.random() * W,
         y: -200, // Start above screen
-        vx: (Math.random() - 0.5) * 2,
-        vy: 1 + Math.random() * 2,
-        radius: 150 + Math.random() * 200,
-        strength: 0.5 + Math.random() * 1.5,
+        vx: (Math.random() - 0.5) * 1.2, // Reduced horizontal drift
+        vy: 0.6 + Math.random() * 1.2, // Slower vertical movement
+        radius: 180 + Math.random() * 150, // More consistent size
+        strength: 0.3 + Math.random() * 0.8, // Reduced strength
         age: 0,
-        maxAge: 300 + Math.random() * 300,
+        maxAge: 400 + Math.random() * 300, // Longer duration
         rotation: Math.random() * Math.PI * 2
       });
     }
@@ -192,6 +204,82 @@ html
     for (let i = 0; i < 3; i++) {
       createRandomWeatherPattern();
     }
+    
+    // Color pattern shapes
+    const colorPatterns = [];
+    
+    function createColorPattern() {
+      const shapes = ['circle', 'triangle', 'square', 'hexagon', 'star'];
+      const shape = shapes[Math.floor(Math.random() * shapes.length)];
+      
+      colorPatterns.push({
+        shape: shape,
+        x: Math.random() * W,
+        y: -150,
+        vx: (Math.random() - 0.5) * 0.8,
+        vy: 0.4 + Math.random() * 0.8,
+        size: 80 + Math.random() * 120,
+        hueShift: Math.random() * 120 - 60, // -60 to +60
+        rotation: Math.random() * Math.PI * 2,
+        rotationSpeed: (Math.random() - 0.5) * 0.02,
+        age: 0,
+        maxAge: 500 + Math.random() * 400
+      });
+    }
+    
+    // Start with a few color patterns
+    for (let i = 0; i < 2; i++) {
+      createColorPattern();
+    }
+    
+    // Color wave sources
+    const colorWaveSources = [];
+    
+    function createColorWaveSource() {
+      // Random position on screen edges or anywhere
+      let x, y, vx, vy;
+      const edge = Math.floor(Math.random() * 4);
+      
+      switch (edge) {
+        case 0: // Top
+          x = Math.random() * W;
+          y = -100;
+          vx = (Math.random() - 0.5) * 2;
+          vy = 0.5 + Math.random() * 1.5;
+          break;
+        case 1: // Right
+          x = W + 100;
+          y = Math.random() * H;
+          vx = -(0.5 + Math.random() * 1.5);
+          vy = (Math.random() - 0.5) * 2;
+          break;
+        case 2: // Bottom
+          x = Math.random() * W;
+          y = H + 100;
+          vx = (Math.random() - 0.5) * 2;
+          vy = -(0.5 + Math.random() * 1.5);
+          break;
+        case 3: // Left
+          x = -100;
+          y = Math.random() * H;
+          vx = 0.5 + Math.random() * 1.5;
+          vy = (Math.random() - 0.5) * 2;
+          break;
+      }
+      
+      colorWaveSources.push({
+        x: x,
+        y: y,
+        vx: vx,
+        vy: vy,
+        age: 0,
+        maxAge: 800 + Math.random() * 400,
+        waveSpeed: 2 + Math.random() * 3
+      });
+    }
+    
+    // Start with one color wave source
+    createColorWaveSource();
 
     // Add click handler to create waves
     canvas.addEventListener("click", (e) => {
@@ -273,15 +361,15 @@ html
         sw.y += sw.vy;
         sw.age++;
         
-        // Random direction changes for moving waves
-        if ((sw.vx !== 0 || sw.vy !== 0) && Math.random() < 0.015) {
-          sw.vx += (Math.random() - 0.5) * 0.8;
-          sw.vy += (Math.random() - 0.5) * 0.8;
+        // Subtle direction changes for moving waves
+        if ((sw.vx !== 0 || sw.vy !== 0) && Math.random() < 0.005) { // Less frequent changes
+          sw.vx += (Math.random() - 0.5) * 0.3; // Gentler changes
+          sw.vy += (Math.random() - 0.5) * 0.3;
           // Keep reasonable speeds
           const speed = Math.sqrt(sw.vx * sw.vx + sw.vy * sw.vy);
-          if (speed > 3) {
-            sw.vx = (sw.vx / speed) * 3;
-            sw.vy = (sw.vy / speed) * 3;
+          if (speed > 2.5) { // Lower max speed
+            sw.vx = (sw.vx / speed) * 2.5;
+            sw.vy = (sw.vy / speed) * 2.5;
           }
         }
         
@@ -294,7 +382,7 @@ html
       }
       
       // Occasionally spawn new speed waves
-      if (Math.random() < 0.008 && speedWaves.length < maxActiveRipples) {
+      if (Math.random() < 0.004 && speedWaves.length < maxActiveRipples) { // Less frequent spawning
         createSpeedWave();
       }
       
@@ -306,15 +394,15 @@ html
         wp.age++;
         wp.rotation += 0.02;
         
-        // Random direction changes
-        if (Math.random() < 0.02) {
-          wp.vx += (Math.random() - 0.5) * 0.5;
-          wp.vy += (Math.random() - 0.5) * 0.5;
+        // Subtle direction changes
+        if (Math.random() < 0.008) { // Much less frequent
+          wp.vx += (Math.random() - 0.5) * 0.25; // Gentler changes
+          wp.vy += (Math.random() - 0.5) * 0.25;
           // Keep reasonable speeds
           const speed = Math.sqrt(wp.vx * wp.vx + wp.vy * wp.vy);
-          if (speed > 3) {
-            wp.vx = (wp.vx / speed) * 3;
-            wp.vy = (wp.vy / speed) * 3;
+          if (speed > 2) { // Lower max speed
+            wp.vx = (wp.vx / speed) * 2;
+            wp.vy = (wp.vy / speed) * 2;
           }
         }
         
@@ -322,15 +410,55 @@ html
         if (wp.y > H + 300 || wp.age > wp.maxAge) {
           weatherPatterns.splice(i, 1);
           // Create a new one to maintain variety
-          if (Math.random() < 0.3) {
+          if (Math.random() < 0.4) {
             createRandomWeatherPattern();
           }
         }
       }
       
       // Occasionally spawn new patterns
-      if (Math.random() < 0.01 && weatherPatterns.length < 5) {
+      if (Math.random() < 0.006 && weatherPatterns.length < 4) { // Reduced max patterns
         createRandomWeatherPattern();
+      }
+      
+      // Update color patterns
+      for (let i = colorPatterns.length - 1; i >= 0; i--) {
+        const cp = colorPatterns[i];
+        cp.x += cp.vx;
+        cp.y += cp.vy;
+        cp.age++;
+        cp.rotation += cp.rotationSpeed;
+        
+        // Remove if off screen or expired
+        if (cp.y > H + 200 || cp.age > cp.maxAge) {
+          colorPatterns.splice(i, 1);
+          if (Math.random() < 0.5) {
+            createColorPattern();
+          }
+        }
+      }
+      
+      // Occasionally spawn new color patterns
+      if (Math.random() < 0.005 && colorPatterns.length < 3) {
+        createColorPattern();
+      }
+      
+      // Update color wave sources
+      for (let i = colorWaveSources.length - 1; i >= 0; i--) {
+        const cws = colorWaveSources[i];
+        cws.x += cws.vx;
+        cws.y += cws.vy;
+        cws.age++;
+        
+        // Remove if too old or too far off screen
+        if (cws.age > cws.maxAge || cws.x < -300 || cws.x > W + 300 || cws.y < -300 || cws.y > H + 300) {
+          colorWaveSources.splice(i, 1);
+        }
+      }
+      
+      // Spawn new color wave sources based on frequency slider
+      if (colorWaveFrequency > 0 && Math.random() < colorWaveFrequency * 0.008 && colorWaveSources.length < 5) {
+        createColorWaveSource();
       }
       
       // Calculate visible grid based on zoom
@@ -455,6 +583,55 @@ html
           
           const angle = baseAngle + waveEffect;
 
+          // Apply color pattern effects
+          let patternColorShift = 0;
+          
+          for (const cp of colorPatterns) {
+            const dx = px - cp.x;
+            const dy = py - cp.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            // Check if point is inside the shape
+            let insideShape = false;
+            const angleToPoint = Math.atan2(dy, dx) - cp.rotation;
+            
+            switch (cp.shape) {
+              case 'circle':
+                insideShape = dist < cp.size;
+                break;
+                
+              case 'triangle':
+                // Simple triangle approximation
+                const triDist = cp.size * (1 + 0.3 * Math.cos(angleToPoint * 3));
+                insideShape = dist < triDist;
+                break;
+                
+              case 'square':
+                const squareSize = cp.size * 0.8;
+                const rotatedX = dx * Math.cos(-cp.rotation) - dy * Math.sin(-cp.rotation);
+                const rotatedY = dx * Math.sin(-cp.rotation) + dy * Math.cos(-cp.rotation);
+                insideShape = Math.abs(rotatedX) < squareSize && Math.abs(rotatedY) < squareSize;
+                break;
+                
+              case 'hexagon':
+                const hexDist = cp.size * (1 + 0.15 * Math.cos(angleToPoint * 6));
+                insideShape = dist < hexDist;
+                break;
+                
+              case 'star':
+                const starDist = cp.size * (0.5 + 0.5 * (1 + Math.cos(angleToPoint * 5)) / 2);
+                insideShape = dist < starDist;
+                break;
+            }
+            
+            if (insideShape) {
+              const fadeEdge = 1 - (dist / cp.size);
+              const smoothFade = fadeEdge * fadeEdge;
+              const ageFade = Math.sin((cp.age / cp.maxAge) * Math.PI);
+              patternColorShift += cp.hueShift * smoothFade * ageFade;
+            }
+          }
+          
           // Apply weather pattern effects
           let weatherAngleEffect = 0;
           let weatherSizeEffect = 1;
@@ -467,35 +644,35 @@ html
             
             if (dist < wp.radius) {
               const falloff = 1 - (dist / wp.radius);
-              const smoothFalloff = falloff * falloff; // Smoother falloff
-              const intensity = smoothFalloff * wp.strength * 0.5; // Reduced intensity
+              const smoothFalloff = falloff * falloff * falloff; // Even smoother falloff
+              const intensity = smoothFalloff * wp.strength * 0.15; // Much more subtle
               
               switch (wp.type) {
                 case 'turbulence':
-                  // Chaotic swirling motion
-                  weatherAngleEffect += Math.sin(dist * 0.05 + wp.rotation) * intensity * 0.8;
-                  weatherSizeEffect *= 1 + intensity * 0.15;
+                  // Very subtle swirling motion
+                  weatherAngleEffect += Math.sin(dist * 0.05 + wp.rotation) * intensity * 0.3;
+                  weatherSizeEffect *= 1 + intensity * 0.05;
                   break;
                   
                 case 'calm':
-                  // Smooth, organized flow
-                  weatherAngleEffect += Math.sin(wp.rotation) * intensity * 0.3;
-                  weatherSizeEffect *= 1 - intensity * 0.1;
-                  weatherColorShift += intensity * 30;
+                  // Barely noticeable organized flow
+                  weatherAngleEffect += Math.sin(wp.rotation) * intensity * 0.15;
+                  weatherSizeEffect *= 1 - intensity * 0.03;
+                  weatherColorShift += intensity * 10;
                   break;
                   
                 case 'vortex':
-                  // Circular motion
+                  // Gentle circular motion
                   const vortexAngle = Math.atan2(dy, dx) + Math.PI * 0.5;
-                  weatherAngleEffect += Math.sin(vortexAngle + dist * 0.02) * intensity * 0.6;
-                  weatherSizeEffect *= 1 + intensity * 0.2;
+                  weatherAngleEffect += Math.sin(vortexAngle + dist * 0.02) * intensity * 0.2;
+                  weatherSizeEffect *= 1 + intensity * 0.06;
                   break;
                   
                 case 'drift':
-                  // Directional push
+                  // Subtle directional push
                   const driftAngle = Math.atan2(wp.vy, wp.vx);
-                  weatherAngleEffect += Math.sin(driftAngle) * intensity * 0.4;
-                  weatherColorShift -= intensity * 20;
+                  weatherAngleEffect += Math.sin(driftAngle) * intensity * 0.15;
+                  weatherColorShift -= intensity * 8;
                   break;
               }
             }
@@ -516,8 +693,29 @@ html
           const x2 = px + ox + Math.cos(finalAngle) * (len * 0.5);
           const y2 = py + oy + Math.sin(finalAngle) * (len * 0.5);
 
+          // Apply color wave sources
+          let colorWaveShift = 0;
+          
+          for (const cws of colorWaveSources) {
+            const dx = px - cws.x;
+            const dy = py - cws.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const waveRadius = cws.age * cws.waveSpeed;
+            
+            // Create expanding wave of color change
+            const waveWidth = 150;
+            const waveDist = Math.abs(dist - waveRadius);
+            
+            if (waveDist < waveWidth) {
+              const bandIntensity = 1 - (waveDist / waveWidth);
+              const progress = cws.age / cws.maxAge;
+              const fadeOut = Math.sin(progress * Math.PI); // Fade in and out
+              colorWaveShift += 120 * bandIntensity * fadeOut; // Shift hue by up to 120 degrees
+            }
+          }
+          
           // More varied primary colors
-          const baseHue = (gridX * 3 + gridY * 2.5 + t * 40 + weatherColorShift) % 360; // Increased variation
+          const baseHue = (gridX * 3 + gridY * 2.5 + t * 40 + weatherColorShift + patternColorShift + colorWaveShift) % 360; // Increased variation
           
           // Expand primary color ranges for more variety
           let primaryHue;
