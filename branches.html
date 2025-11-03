@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Graph FINAL v2.0</title>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #f8f8f8;
+            overflow: hidden;
+            cursor: default;
+        }
+        canvas {
+            display: block;
+        }
+        canvas.grabbing {
+            cursor: grabbing !important;
+        }
+        canvas.grab {
+            cursor: grab;
+        }
+        .controls {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            z-index: 1000;
+        }
+        .control-row {
+            margin-bottom: 8px;
+        }
+        .control-label {
+            display: block;
+            margin-bottom: 4px;
+            font-size: 13px;
+            color: #555;
+        }
+        .controls input[type="range"] {
+            width: 200px;
+            cursor: pointer;
+        }
+        .controls .value-display {
+            display: inline-block;
+            margin-left: 10px;
+            font-size: 13px;
+            color: #666;
+            min-width: 30px;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <div class="control-row">
+            <span class="control-label">Parent Speed:</span>
+            <input type="range" id="parentSpeedSlider" min="0" max="200" value="200" step="1">
+            <span class="value-display" id="parentSpeedValue">2.0x</span>
+        </div>
+        <div class="control-row">
+            <span class="control-label">Baby Speed:</span>
+            <input type="range" id="babySpeedSlider" min="0" max="200" value="200" step="1">
+            <span class="value-display" id="babySpeedValue">2.0x</span>
+        </div>
+        <div class="control-row" style="margin-top:6px;font-size:11px;color:#666;">
+            <span id="statsDisplay">Parents: 0 | Babies: 0</span>
+        </div>
+        <div class="control-row" style="margin-top:4px;font-size:12px;color:#888;">
+            <span id="cycleCountdown">Next cycle: 5s</span>
+        </div>
+        <div class="control-row" style="margin-top:4px;font-size:11px;color:#555;">
+            <span id="evolutionInfo">Last evolution: 0s ago | Cycles since: 0</span><br>
+            <span id="cycleMetrics">Cycle: evo 0 | deaths 0 | demotions 0</span>
+        </div>
+    </div>
+    <canvas id="canvas"></canvas>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        // Speed controls
+    let parentSpeed = 2.0; // Max default speed
+    let babySpeed = 2.0;   // Max default baby animation speed
+        
+        // Lifecycle system
+        const burstParticles = [];
+    const LIFECYCLE_INTERVAL = 5000; // 5 seconds
+    const BABY_EVOLVE_PROBABILITY = 0.15; // Normal evolution probability (one max per cycle)
+    const BABY_BURST_PROBABILITY = 0.10; // Probability gating for each potential burst (max 3 per cycle)
+    const BABY_MIN_AGE = 15000; // 15 seconds before can burst
+    const DEMOTE_SHRINK_DURATION = 1200; // ms shrink duration for demoted parents
+    const BABY_DEATH_SHRINK_DURATION = 800; // ms shrink duration for dying babies
+
+        // Evolution tracking
+    let lastEvolutionTime = Date.now();
+    let cyclesSinceEvolution = 0;
+    let forcedEvolutionCount = 0;
+    // Per-cycle metrics
+    let cycleDeaths = 0;
+    let cycleDemotions = 0;
+    let cycleEvolution = 0;
+        
+        // Setup speed sliders
+        const parentSpeedSlider = document.getElementById('parentSpeedSlider');
+        const parentSpeedValue = document.getElementById('parentSpeedValue');
+        parentSpeedSlider.addEventListener('input', (e) => {
+            parentSpeed = parseFloat(e.target.value) / 100;
+            parentSpeedValue.textContent = parentSpeed.toFixed(1) + 'x';
+        });
+        
+        const babySpeedSlider = document.getElementById('babySpeedSlider');
+        const babySpeedValue = document.getElementById('babySpeedValue');
+        babySpeedSlider.addEventListener('input', (e) => {
+            babySpeed = parseFloat(e.target.value) / 100;
+            babySpeedValue.textContent = babySpeed.toFixed(1) + 'x';
+        });
+        
+        // High DPI canvas setup
+        const dpr = window.devicePixelRatio || 1;
+        canvas.width = window.innerWidth * dpr;
+        canvas.height = window.innerHeight * dpr;
+        canvas.style.width = window.innerWidth + 'px';
+        canvas.style.height = window.innerHeight + 'px';
+        ctx.scale(dpr, dpr);
+        
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+        const centerX = width / 2;
+        const centerY = height / 2;
+
+        // Node storage
+        const megaParentNodes = [];
+        const parentNodes = [];
+
+        // (Re)spawn a parent node attached to a mega-parent; optional forced baby count
+        function spawnParent(megaParent, isInitial = false, forcedBabyCount = null) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = (megaParent.radius + 40) + Math.random() * 60;
+            const baseX = megaParent.x + Math.cos(angle) * dist;
+            const baseY = megaParent.y + Math.sin(angle) * dist;
+            const radius = 10 + Math.random() * 4; // Smaller parent size
+            
+            // Parents have forcedBabyCount babies if provided else 4-5
+            const numBabies = forcedBabyCount !== null ? forcedBabyCount : (4 + Math.floor(Math.random() * 2));
+            const spokeData = [];
+            for (let k = 0; k < numBabies; k++) {
+                const spokeAngle = (k / numBabies) * Math.PI * 2;
+                const spokeLength = radius * 2.2 + Math.random() * (radius * 1.8);
+                const curvature = (Math.random() - 0.5) * 0.4;
+                spokeData.push({ 
+                    angle: spokeAngle, 
+                    targetAngle: spokeAngle + (Math.random() - 0.5) * 0.4,
+                    orbitSpeed: 0.001 + Math.random() * 0.002,
+                    verticalAngle: Math.random() * Math.PI * 2,
+                    verticalSpeed: 0.001 + Math.random() * 0.002,
+                    length: spokeLength, 
+                    curvature, 
+                    isBaby: true,
+                    birthTime: Date.now()
+                });
+            }
+            
+            const parent = {
+                baseX, baseY,
+                x: baseX, y: baseY, z: 0,
+                prevX: baseX, prevY: baseY,
+                vx: 0, vy: 0,
+                floatAngleX: Math.random() * Math.PI * 2,
+                floatAngleY: Math.random() * Math.PI * 2,
+                floatAngleZ: Math.random() * Math.PI * 2,
+                floatSpeedX: 0.003 + Math.random() * 0.004,
+                floatSpeedY: 0.003 + Math.random() * 0.004,
+                floatSpeedZ: 0.002 + Math.random() * 0.003,
+                floatRadiusX: 8 + Math.random() * 10,
+                floatRadiusY: 8 + Math.random() * 10,
+                floatRadiusZ: 15 + Math.random() * 20,
+                radius,
+                spokeData,
+                megaParent,
+                isDragging: false,
+                nodeType: 'parent',
+                tentaclePhase: Math.random() * Math.PI * 2
+            };
+            parentNodes.push(parent);
+            megaParent.children.push(parent);
+            if (!isInitial) updateStats();
+            return parent;
+        }
+
+        // Initial setup sequence:
+        //  1. Create ONE mega-parent.
+        //  2. Spawn FOUR babies directly on the mega-parent (as spokes).
+        //  3. Each of those FOUR babies immediately evolves into a parent (positioned at its endpoint) with FOUR babies of its own.
+        //  4. Regular lifecycle then begins (early death suppression logic still applies to first five cycles).
+        function createInitialSetup() {
+            megaParentNodes.length = 0;
+            parentNodes.length = 0;
+            const baseX = centerX;
+            const baseY = centerY;
+            const radius = 70; // central mega-parent
+            const megaParent = {
+                baseX, baseY,
+                x: baseX, y: baseY, z: 0,
+                prevX: baseX, prevY: baseY,
+                vx: 0, vy: 0,
+                floatAngleX: Math.random() * Math.PI * 2,
+                floatAngleY: Math.random() * Math.PI * 2,
+                floatAngleZ: Math.random() * Math.PI * 2,
+                floatSpeedX: 0.0007 + Math.random() * 0.0006,
+                floatSpeedY: 0.0007 + Math.random() * 0.0006,
+                floatSpeedZ: 0.0005 + Math.random() * 0.0006,
+                floatRadiusX: 22 + Math.random() * 18,
+                floatRadiusY: 22 + Math.random() * 18,
+                floatRadiusZ: 45 + Math.random() * 40,
+                radius,
+                spokeData: [],
+                children: [],
+                isDragging: false,
+                nodeType: 'megaParent'
+            };
+            megaParentNodes.push(megaParent);
+
+            // Step 2: spawn four babies on mega-parent
+            for (let i = 0; i < 4; i++) {
+                const angle = (i / 4) * Math.PI * 2;
+                const length = radius * 2.2 + Math.random() * (radius * 0.6);
+                megaParent.spokeData.push({
+                    angle,
+                    targetAngle: angle + (Math.random() - 0.5) * 0.3,
+                    orbitSpeed: 0.001 + Math.random() * 0.002,
+                    verticalAngle: Math.random() * Math.PI * 2,
+                    verticalSpeed: 0.001 + Math.random() * 0.002,
+                    length,
+                    curvature: (Math.random() - 0.5) * 0.4,
+                    isBaby: true,
+                    birthTime: Date.now()
+                });
+            }
+
+            // Step 3: evolve each baby into a parent (iterate from last to first to avoid index shift)
+            for (let i = megaParent.spokeData.length - 1; i >= 0; i--) {
+                evolveBabyToParent(megaParent, i);
+            }
+            updateStats();
+        }
+
+        // Run initial sequence
+        createInitialSetup();
+
+        // Spawn baby attached to ANY node (adds one more spoke/tentacle with dot at end)
+        function spawnBaby(node) {
+            // A baby is just a spoke with a dot at the end
+            const spokeAngle = Math.random() * Math.PI * 2;
+            const spokeLength = node.radius * 2.2 + Math.random() * (node.radius * 1.8);
+            const curvature = (Math.random() - 0.5) * 0.4;
+            
+            node.spokeData.push({ 
+                angle: spokeAngle,
+                targetAngle: spokeAngle + (Math.random() - 0.5) * 0.4,
+                orbitSpeed: 0.001 + Math.random() * 0.002,
+                verticalAngle: Math.random() * Math.PI * 2,
+                verticalSpeed: 0.001 + Math.random() * 0.002,
+                length: spokeLength, 
+                curvature,
+                isBaby: true,
+                birthTime: Date.now() // Track when baby was born
+            });
+            
+            updateStats();
+        }
+
+        // Burst particle system
+        function createBurstParticles(x, y, z) {
+            // Validate input
+            if (!isFinite(x) || !isFinite(y) || !isFinite(z)) {
+                console.warn('Invalid particle position, skipping burst');
+                return;
+            }
+            
+            const numParticles = 15 + Math.floor(Math.random() * 10);
+            for (let i = 0; i < numParticles; i++) {
+                const angle = (Math.PI * 2 * i) / numParticles + (Math.random() - 0.5) * 0.3;
+                const speed = 2 + Math.random() * 3;
+                burstParticles.push({
+                    x, y, z: z || 0,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    vz: (Math.random() - 0.5) * speed,
+                    life: 1.0,
+                    decay: 0.02 + Math.random() * 0.01,
+                    size: 2 + Math.random() * 3
+                });
+            }
+        }
+
+        // Baby death particles (orange implosion)
+        function createBabyDeathParticles(x, y, z) {
+            if (!isFinite(x) || !isFinite(y) || !isFinite(z)) return;
+            const num = 14 + Math.floor(Math.random() * 6);
+            for (let i = 0; i < num; i++) {
+                const ang = (Math.PI * 2 * i) / num + (Math.random() - 0.5) * 0.4;
+                const speed = 1.5 + Math.random() * 1.5;
+                burstParticles.push({
+                    x, y, z: z || 0,
+                    vx: Math.cos(ang) * speed * 0.6,
+                    vy: Math.sin(ang) * speed * 0.6,
+                    vz: (Math.random() - 0.5) * speed * 0.4,
+                    life: 0.9,
+                    decay: 0.02 + Math.random() * 0.015,
+                    size: 2 + Math.random() * 2,
+                    isDeath: true
+                });
+            }
+        }
+
+        // Parent demotion particles (subtle gray collapse)
+        function createDemotionParticles(x, y, z) {
+            if (!isFinite(x) || !isFinite(y) || !isFinite(z)) return;
+            const num = 10 + Math.floor(Math.random() * 5);
+            for (let i = 0; i < num; i++) {
+                const ang = Math.random() * Math.PI * 2;
+                const speed = 1 + Math.random() * 1.2;
+                burstParticles.push({
+                    x, y, z: z || 0,
+                    vx: Math.cos(ang) * speed * 0.3,
+                    vy: Math.sin(ang) * speed * 0.3,
+                    vz: (Math.random() - 0.5) * speed * 0.2,
+                    life: 0.7,
+                    decay: 0.025 + Math.random() * 0.015,
+                    size: 1.5 + Math.random() * 1.5,
+                    isDemotion: true
+                });
+            }
+        }
+
+        // Evolve baby into a fully functional parent node (fixes: matching float properties, single removal, adds to megaParent children)
+        function evolveBabyToParent(parentNode, babyIndex) {
+            try {
+                const baby = parentNode.spokeData[babyIndex];
+                if (!baby) return;
+
+                // Derive megaParent reference (if evolving from a parent use its megaParent, else itself if megaParent)
+                const megaParentRef = parentNode.nodeType === 'parent' ? parentNode.megaParent : parentNode.nodeType === 'megaParent' ? parentNode : null;
+
+                // Compute world position of baby
+                const angle = baby.angle || 0;
+                const length = baby.length || (parentNode.radius * 2.5);
+                const depthOffset = Math.sin(baby.verticalAngle || 0) * 30;
+                let x = parentNode.x + Math.cos(angle) * length;
+                let y = parentNode.y + Math.sin(angle) * length;
+                let z = (parentNode.z || 0) + depthOffset;
+
+                // Clamp within viewport margins
+                const margin = 60;
+                if (!isFinite(x) || x < margin || x > width - margin) x = Math.max(margin, Math.min(width - margin, parentNode.x));
+                if (!isFinite(y) || y < margin || y > height - margin) y = Math.max(margin, Math.min(height - margin, parentNode.y));
+                if (!isFinite(z)) z = 0;
+
+                // Build new parent spoke set (4 babies)
+                const newRadius = 10 + Math.random() * 4; // Match reduced parent size
+                const spokeData = [];
+                const numBabies = 4;
+                for (let k = 0; k < numBabies; k++) {
+                    const a = (k / numBabies) * Math.PI * 2;
+                    const sl = newRadius * 2.2 + Math.random() * (newRadius * 1.8);
+                    const curvature = (Math.random() - 0.5) * 0.4;
+                    spokeData.push({
+                        angle: a,
+                        targetAngle: a + (Math.random() - 0.5) * 0.4,
+                        orbitSpeed: 0.001 + Math.random() * 0.002,
+                        verticalAngle: Math.random() * Math.PI * 2,
+                        verticalSpeed: 0.001 + Math.random() * 0.002,
+                        length: sl,
+                        curvature,
+                        isBaby: true,
+                        birthTime: Date.now()
+                    });
+                }
+
+                // Remove baby ONCE
+                parentNode.spokeData.splice(babyIndex, 1);
+
+                // Create new parent with SAME property schema as spawnParent (critical for animation)
+                const newParent = {
+                    baseX: x,
+                    baseY: y,
+                    x,
+                    y,
+                    z,
+                    prevX: x,
+                    prevY: y,
+                    vx: 0,
+                    vy: 0,
+                    floatAngleX: Math.random() * Math.PI * 2,
+                    floatAngleY: Math.random() * Math.PI * 2,
+                    floatAngleZ: Math.random() * Math.PI * 2,
+                    floatSpeedX: 0.003 + Math.random() * 0.004,
+                    floatSpeedY: 0.003 + Math.random() * 0.004,
+                    floatSpeedZ: 0.002 + Math.random() * 0.003,
+                    floatRadiusX: 8 + Math.random() * 10,
+                    floatRadiusY: 8 + Math.random() * 10,
+                    floatRadiusZ: 15 + Math.random() * 20,
+                    radius: newRadius,
+                    spokeData,
+                    megaParent: megaParentRef,
+                    isDragging: false,
+                    nodeType: 'parent',
+                    tentaclePhase: Math.random() * Math.PI * 2,
+                    isEvolved: true,
+                    evolveTime: Date.now(),
+                    children: []
+                };
+
+                parentNodes.push(newParent);
+                if (megaParentRef) megaParentRef.children.push(newParent);
+
+                // Evolution particles
+                createEvolutionParticles(x, y, z);
+                updateStats();
+            } catch (err) {
+                console.error('Evolution failure:', err);
+            }
+        }
+        
+        // Evolution particle system - brighter/different color than burst
+        function createEvolutionParticles(x, y, z) {
+            // Validate input
+            if (!isFinite(x) || !isFinite(y) || !isFinite(z)) {
+                console.warn('Invalid particle position, skipping evolution particles');
+                return;
+            }
+            
+            const numParticles = 20 + Math.floor(Math.random() * 15);
+            for (let i = 0; i < numParticles; i++) {
+                const angle = (Math.PI * 2 * i) / numParticles + (Math.random() - 0.5) * 0.3;
+                const speed = 3 + Math.random() * 4;
+                burstParticles.push({
+                    x, y, z: z || 0,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    vz: (Math.random() - 0.5) * speed * 1.5,
+                    life: 1.0,
+                    decay: 0.015 + Math.random() * 0.008,
+                    size: 3 + Math.random() * 4,
+                    isEvolution: true // Flag for different color
+                });
+            }
+        }
+
+        // Lifecycle check - runs every 5 seconds
+        // Rules:
+        //  - Exactly ONE baby evolves each cycle (oldest chosen)
+        //  - Exactly THREE babies burst each cycle (oldest remaining chosen)
+        //  - First FIVE cycles: suppress baby deaths (no shrinking) but allow evolution & spawning
+        let lifecycleCycleIndex = 0;
+        function runLifecycleCheck() {
+            try {
+                const currentTime = Date.now();
+                const allNodes = [...megaParentNodes, ...parentNodes];
+                // Collect all babies with ages
+                const collectBabies = () => {
+                    const list = [];
+                    allNodes.forEach(node => {
+                        if (!node.spokeData) return;
+                        node.spokeData.forEach((spoke, idx) => {
+                            if (spoke.isBaby && spoke.birthTime) {
+                                list.push({ node, spoke, index: idx, age: currentTime - spoke.birthTime });
+                            }
+                        });
+                    });
+                    return list;
+                };
+
+                let babies = collectBabies();
+                let evolvedThisCycle = false;
+                cycleDeaths = 0;
+                cycleDemotions = 0;
+                cycleEvolution = 0;
+
+                // Evolve exactly ONE (oldest baby)
+                if (babies.length > 0) {
+                    babies.sort((a, b) => b.age - a.age); // oldest first
+                    const chosen = babies[0];
+                    evolveBabyToParent(chosen.node, chosen.index);
+                    evolvedThisCycle = true;
+                    cycleEvolution = 1;
+                }
+
+                // Recollect babies after evolution (exclude newborn babies that appeared this very evolution cycle)
+                const evolutionTimestamp = Date.now();
+                babies = collectBabies().filter(b => b.spoke.birthTime < evolutionTimestamp - 50); // exclude just-created
+
+                // Exactly THREE baby deaths each cycle (after first 5 cycles)
+                if (babies.length > 0 && lifecycleCycleIndex >= 5) {
+                    // Sort all babies by age descending
+                    babies.sort((a, b) => b.age - a.age);
+                    const selected = [];
+                    const usedParents = new Set();
+                    // First pass: pick distinct parents
+                    for (let i = 0; i < babies.length && selected.length < 3; i++) {
+                        const entry = babies[i];
+                        if (!usedParents.has(entry.node)) {
+                            selected.push(entry);
+                            usedParents.add(entry.node);
+                        }
+                    }
+                    // Second pass: if still fewer than 3 and there are remaining babies, allow repeats from same parents
+                    if (selected.length < 3) {
+                        for (let i = 0; i < babies.length && selected.length < 3; i++) {
+                            const entry = babies[i];
+                            if (!selected.includes(entry)) {
+                                selected.push(entry);
+                            }
+                        }
+                    }
+                    // If total babies less than 3, we still mark all of them (can't fabricate)
+                    selected.forEach(entry => {
+                        const { spoke } = entry;
+                        if (!spoke.isDying) {
+                            spoke.isDying = true;
+                            spoke.deathStartTime = Date.now();
+                            spoke.originalLength = spoke.length;
+                            spoke.deathBurstSpawned = false; // will spawn burst particles on first draw
+                            cycleDeaths++;
+                        }
+                    });
+                }
+
+                // Mark parents with zero babies for shrink demotion
+                parentNodes.forEach(parent => {
+                    if (parent.isDemoting) return; // already in process
+                    if (!parent.megaParent) return; // only demote if attached
+                    const babyCount = parent.spokeData.filter(s => s.isBaby).length;
+                    if (babyCount === 0) {
+                        parent.isDemoting = true;
+                        parent.demoteStartTime = Date.now();
+                        parent.originalRadius = parent.radius;
+                        cycleDemotions++;
+                    }
+                });
+
+                // Evolution tracking
+                if (evolvedThisCycle) {
+                    lastEvolutionTime = Date.now();
+                    cyclesSinceEvolution = 0;
+                } else {
+                    cyclesSinceEvolution++;
+                }
+                lifecycleCycleIndex++;
+
+                // Spawn two babies on distinct parents each cycle (skip demoting ones)
+                const spawnableParents = parentNodes.filter(p => !p.isDemoting && p.spokeData);
+                if (spawnableParents.length > 0) {
+                    // Shuffle simple
+                    for (let i = spawnableParents.length - 1; i > 0; i--) {
+                        const r = Math.floor(Math.random() * (i + 1));
+                        [spawnableParents[i], spawnableParents[r]] = [spawnableParents[r], spawnableParents[i]];
+                    }
+                    const toSpawn = spawnableParents.slice(0, 2);
+                    toSpawn.forEach(parent => spawnBaby(parent));
+                }
+                updateStats();
+                updateEvolutionInfo();
+                nextCycleTime = Date.now() + LIFECYCLE_INTERVAL;
+            } catch (err) {
+                console.error('Lifecycle check error:', err);
+                nextCycleTime = Date.now() + LIFECYCLE_INTERVAL;
+            }
+        }
+
+        // Start lifecycle timer and countdown
+        let nextCycleTime = Date.now() + LIFECYCLE_INTERVAL;
+        setInterval(runLifecycleCheck, LIFECYCLE_INTERVAL);
+        
+        // Update countdown display
+        function updateCountdown() {
+            const remaining = Math.max(0, Math.ceil((nextCycleTime - Date.now()) / 1000));
+            const countdownEl = document.getElementById('cycleCountdown');
+            if (countdownEl) {
+                countdownEl.textContent = `Next cycle: ${remaining}s`;
+            }
+        }
+        setInterval(updateCountdown, 100); // Update every 100ms for smooth countdown
+
+        function updateEvolutionInfo() {
+            const infoEl = document.getElementById('evolutionInfo');
+            const metricsEl = document.getElementById('cycleMetrics');
+            if (!infoEl) return;
+            const secondsAgo = Math.max(0, Math.floor((Date.now() - lastEvolutionTime) / 1000));
+            infoEl.textContent = `Last evolution: ${secondsAgo}s ago | Cycles since: ${cyclesSinceEvolution}${forcedEvolutionCount > 0 ? ' | Forced: ' + forcedEvolutionCount : ''}`;
+            if (metricsEl) {
+                metricsEl.textContent = `Cycle: evo ${cycleEvolution} | deaths ${cycleDeaths} | demotions ${cycleDemotions}`;
+            }
+        }
+        setInterval(updateEvolutionInfo, 500);
+
+        // Update stats display
+        function updateStats() {
+            const statsEl = document.getElementById('statsDisplay');
+            if (statsEl) {
+                // Count babies across ALL nodes (mega-parents + parents)
+                let totalBabies = 0;
+                megaParentNodes.forEach(mp => {
+                    totalBabies += mp.spokeData.filter(s => s.isBaby).length;
+                });
+                parentNodes.forEach(p => {
+                    totalBabies += p.spokeData.filter(s => s.isBaby).length;
+                });
+                const totalParents = megaParentNodes.length + parentNodes.length;
+                statsEl.textContent = `Parents: ${totalParents} | Babies: ${totalBabies}`;
+            }
+        }
+        updateStats();
+
+        // Draw curved connection between nodes
+        function drawCurvedConnection(from, to, opacity = 0.3) {
+            const dx = to.x - from.x;
+            const dy = to.y - from.y;
+            
+            const cp1X = from.x + dx * 0.25 - dy * 0.15;
+            const cp1Y = from.y + dy * 0.25 + dx * 0.15;
+            const cp2X = from.x + dx * 0.75 - dy * 0.15;
+            const cp2Y = from.y + dy * 0.75 + dx * 0.15;
+            
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(0, 0, 0, ${opacity})`;
+            ctx.lineWidth = 1.5;
+            ctx.moveTo(from.x, from.y);
+            ctx.bezierCurveTo(cp1X, cp1Y, cp2X, cp2Y, to.x, to.y);
+            ctx.stroke();
+        }
+
+        // Draw node with spokes/tentacles
+        function drawNode(node) {
+            // Validate node position
+            if (!isFinite(node.x) || !isFinite(node.y)) {
+                // Skip silently - invalid nodes shouldn't be drawn
+                return;
+            }
+            
+            const zScale = node.z || 0;
+            const scale = Math.max(0.5, Math.min(1.5, 1 + (zScale / 150)));
+            let depthOpacity = Math.max(0.5, Math.min(1.0, 0.7 + (zScale / 200)));
+            let shrinkFactor = 1;
+            if (node.isDemoting && node.demoteStartTime) {
+                const shrinkProgress = (Date.now() - node.demoteStartTime) / DEMOTE_SHRINK_DURATION;
+                const clamped = Math.min(1, shrinkProgress);
+                shrinkFactor = Math.max(0.1, 1 - clamped);
+            }
+            const scaledRadius = node.radius * scale * shrinkFactor;
+            
+            // Validate radius
+            if (!isFinite(scaledRadius) || scaledRadius <= 0) {
+                // Skip silently
+                return;
+            }
+
+            // Draw spokes/tentacles
+            node.spokeData.forEach((spoke, index) => {
+                let angle = spoke.angle;
+                let length = spoke.length * scale;
+                let dynamicCurv = spoke.curvature;
+                let dotSize = 2.5 * scale;
+                
+                // Animate baby spokes (on parent nodes) using babySpeed
+                if (node.nodeType === 'parent' && spoke.isBaby) {
+                    const phase = (node.tentaclePhase || 0) + index * 0.4;
+                    const t = animationTime * 0.01 * babySpeed;
+                    
+                    length = length * (1 + Math.sin(t * 0.9 + phase) * 0.15);
+                    dynamicCurv = spoke.curvature + Math.sin(t * 0.65 + phase * 0.8) * 0.12;
+                    angle = spoke.angle + Math.sin(t * 1.1 + phase) * 0.05;
+                    dotSize = dotSize * (1 + Math.sin(t * 1.4 + phase) * 0.25);
+                }
+                
+                // Shrink animation for dying babies
+                if (spoke.isDying && spoke.deathStartTime) {
+                    const progress = (Date.now() - spoke.deathStartTime) / BABY_DEATH_SHRINK_DURATION;
+                    const clamped = Math.min(1, progress);
+                    if (!spoke.deathBurstSpawned) {
+                        const bx = node.x + Math.cos(spoke.angle) * (spoke.originalLength || spoke.length);
+                        const by = node.y + Math.sin(spoke.angle) * (spoke.originalLength || spoke.length);
+                        createBabyDeathParticles(bx, by, node.z || 0); // burst at start
+                        spoke.deathBurstSpawned = true;
+                    }
+                    // Retract connection using eased pull-in
+                    const retractEase = clamped < 1 ? (1 - Math.pow(1 - clamped, 1.6)) : 1;
+                    length = (spoke.originalLength || spoke.length) * (1 - retractEase) * scale;
+                    // Dot pop then fade
+                    const popPhase = clamped < 0.15 ? (clamped / 0.15) : 1;
+                    const popScale = popPhase < 1 ? (1 + (1 - popPhase) * 1.8) : 1;
+                    const fade = Math.max(0, 1 - Math.pow(clamped, 1.15) * 1.25);
+                    dotSize = 2.5 * scale * popScale * fade;
+                    dynamicCurv *= (1 - retractEase * 0.9);
+                    if (clamped >= 1 && !spoke.removeQueued) {
+                        spoke.removeQueued = true; // removal after full retraction
+                    }
+                }
+                const endX = node.x + Math.cos(angle) * length;
+                const endY = node.y + Math.sin(angle) * length;
+                
+                // Apply 3D depth variation for babies
+                let babyDepthOffset = 0;
+                if (node.nodeType === 'parent' && spoke.isBaby && spoke.verticalAngle !== undefined) {
+                    babyDepthOffset = Math.sin(spoke.verticalAngle) * 30; // Z-offset for 3D
+                }
+                const effectiveZ = (node.z || 0) + babyDepthOffset;
+                const babyScale = Math.max(0.5, Math.min(1.5, 1 + (effectiveZ / 150)));
+                const babyOpacity = Math.max(0.5, Math.min(1.0, 0.7 + (effectiveZ / 200)));
+                
+                const cpX = node.x + Math.cos(angle) * length * 0.55 + Math.sin(angle) * length * dynamicCurv;
+                const cpY = node.y + Math.sin(angle) * length * 0.55 - Math.cos(angle) * length * dynamicCurv;
+                
+                // Draw tentacle
+                ctx.beginPath();
+                ctx.strokeStyle = `rgba(0, 0, 0, ${0.45 * depthOpacity * babyOpacity})`;
+                ctx.lineWidth = 1.2 * scale * babyScale;
+                ctx.moveTo(node.x, node.y);
+                ctx.quadraticCurveTo(cpX, cpY, endX, endY);
+                ctx.stroke();
+                
+                // Draw dot at end - darker and larger
+                if (dotSize > 0.2) {
+                    ctx.beginPath();
+                    ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * depthOpacity * babyOpacity})`;
+                    ctx.arc(endX, endY, dotSize * 1.3 * babyScale, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            
+            // Draw 3D orb with multiple gradient layers
+            // Outer glow/atmosphere
+            const outerGlow = ctx.createRadialGradient(
+                node.x, node.y, scaledRadius * 0.5,
+                node.x, node.y, scaledRadius * 1.4
+            );
+            outerGlow.addColorStop(0, `rgba(80, 80, 80, ${0.15 * depthOpacity})`);
+            outerGlow.addColorStop(0.6, `rgba(60, 60, 60, ${0.08 * depthOpacity})`);
+            outerGlow.addColorStop(1, `rgba(40, 40, 40, 0)`);
+            
+            ctx.beginPath();
+            ctx.fillStyle = outerGlow;
+            ctx.arc(node.x, node.y, scaledRadius * 1.4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Main sphere body with gradient
+            const sphereGradient = ctx.createRadialGradient(
+                node.x - scaledRadius * 0.25, node.y - scaledRadius * 0.25, 0,
+                node.x, node.y, scaledRadius
+            );
+            sphereGradient.addColorStop(0, `rgba(140, 140, 140, ${0.9 * depthOpacity})`);
+            sphereGradient.addColorStop(0.3, `rgba(80, 80, 80, ${0.85 * depthOpacity})`);
+            sphereGradient.addColorStop(0.7, `rgba(40, 40, 40, ${0.8 * depthOpacity})`);
+            sphereGradient.addColorStop(1, `rgba(10, 10, 10, ${0.9 * depthOpacity})`);
+            
+            ctx.beginPath();
+            ctx.fillStyle = sphereGradient;
+            ctx.arc(node.x, node.y, scaledRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Highlight for 3D effect (top-left)
+            const highlightGradient = ctx.createRadialGradient(
+                node.x - scaledRadius * 0.3, node.y - scaledRadius * 0.3, 0,
+                node.x - scaledRadius * 0.3, node.y - scaledRadius * 0.3, scaledRadius * 0.5
+            );
+            highlightGradient.addColorStop(0, `rgba(255, 255, 255, ${0.4 * depthOpacity})`);
+            highlightGradient.addColorStop(0.5, `rgba(200, 200, 200, ${0.15 * depthOpacity})`);
+            highlightGradient.addColorStop(1, `rgba(150, 150, 150, 0)`);
+            
+            ctx.beginPath();
+            ctx.fillStyle = highlightGradient;
+            ctx.arc(node.x, node.y, scaledRadius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Subtle rim light on the edge
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(120, 120, 120, ${0.2 * depthOpacity})`;
+            ctx.lineWidth = 1.5;
+            ctx.arc(node.x, node.y, scaledRadius * 0.95, 0, Math.PI * 2);
+            ctx.stroke();
+            
+            // Visual indicator for newly evolved parents (green ring that fades over 10 seconds)
+            if (node.isEvolved && node.evolveTime) {
+                const timeSinceEvolution = Date.now() - node.evolveTime;
+                const fadeTime = 10000; // 10 seconds
+                if (timeSinceEvolution < fadeTime) {
+                    const fadeOpacity = 1 - (timeSinceEvolution / fadeTime);
+                    ctx.beginPath();
+                    ctx.strokeStyle = `rgba(100, 255, 150, ${0.8 * fadeOpacity * depthOpacity})`;
+                    ctx.lineWidth = 3;
+                    ctx.arc(node.x, node.y, scaledRadius * 1.2, 0, Math.PI * 2);
+                    ctx.stroke();
+                    
+                    // Pulsing outer ring
+                    const pulse = Math.sin(timeSinceEvolution * 0.005) * 0.5 + 0.5;
+                    ctx.beginPath();
+                    ctx.strokeStyle = `rgba(100, 255, 150, ${0.4 * fadeOpacity * pulse * depthOpacity})`;
+                    ctx.lineWidth = 2;
+                    ctx.arc(node.x, node.y, scaledRadius * (1.2 + pulse * 0.3), 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Update all node positions
+        function updateNodes() {
+            // Update mega-parents - they float with parentSpeed
+            megaParentNodes.forEach(megaParent => {
+                if (!megaParent.isDragging) {
+                    megaParent.floatAngleX += megaParent.floatSpeedX * parentSpeed;
+                    megaParent.floatAngleY += megaParent.floatSpeedY * parentSpeed;
+                    megaParent.floatAngleZ += megaParent.floatSpeedZ * parentSpeed;
+                    
+                    const newX = megaParent.baseX + Math.sin(megaParent.floatAngleX) * megaParent.floatRadiusX;
+                    const newY = megaParent.baseY + Math.cos(megaParent.floatAngleY) * megaParent.floatRadiusY;
+                    
+                    // Calculate velocity
+                    megaParent.vx = newX - megaParent.x;
+                    megaParent.vy = newY - megaParent.y;
+                    
+                    megaParent.x = newX;
+                    megaParent.y = newY;
+                    megaParent.z = Math.sin(megaParent.floatAngleZ) * megaParent.floatRadiusZ;
+                } else {
+                    // When dragging, calculate velocity from position change
+                    megaParent.vx = megaParent.x - megaParent.prevX;
+                    megaParent.vy = megaParent.y - megaParent.prevY;
+                }
+                megaParent.prevX = megaParent.x;
+                megaParent.prevY = megaParent.y;
+                
+                // Apply inertia and autonomous movement to baby spokes
+                if (megaParent.spokeData.length > 0) {
+                    const speed = Math.sqrt(megaParent.vx * megaParent.vx + megaParent.vy * megaParent.vy);
+                    
+                    megaParent.spokeData.forEach((spoke, i) => {
+                        if (spoke.isBaby) {
+                            // Autonomous orbital drift (controlled by babySpeed)
+                            spoke.targetAngle += spoke.orbitSpeed * babySpeed;
+                            
+                            // 3D vertical movement
+                            if (!spoke.verticalAngle) spoke.verticalAngle = Math.random() * Math.PI * 2;
+                            spoke.verticalAngle += spoke.verticalSpeed * babySpeed;
+                            
+                            // Apply inertia when parent is being dragged
+                            if (speed > 0.1) {
+                                const dragAngle = Math.atan2(megaParent.vy, megaParent.vx);
+                                const lagAngle = dragAngle + Math.PI;
+                                
+                                let angleDiff = spoke.angle - lagAngle;
+                                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                                
+                                const inertiaFactor = 0.2;
+                                const targetOffset = (Math.PI - Math.abs(angleDiff)) * inertiaFactor * Math.min(speed * 0.08, 0.4);
+                                spoke.targetAngle += (lagAngle + angleDiff * (1 - targetOffset) - spoke.targetAngle) * 0.3;
+                            }
+                        }
+                    });
+                    
+                    // Apply repulsion between babies for even spreading
+                    megaParent.spokeData.forEach((spoke1, i) => {
+                        if (spoke1.isBaby) {
+                            let repulsionForce = 0;
+                            megaParent.spokeData.forEach((spoke2, j) => {
+                                if (i !== j && spoke2.isBaby) {
+                                    let angleDiff = spoke1.angle - spoke2.angle;
+                                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                                    
+                                    const distance = Math.abs(angleDiff);
+                                    if (distance < Math.PI / 2) {
+                                        const repulsion = (Math.PI / 2 - distance) * 0.015;
+                                        repulsionForce += Math.sign(angleDiff) * repulsion;
+                                    }
+                                }
+                            });
+                            spoke1.targetAngle += repulsionForce;
+                        }
+                    });
+                }
+                
+                // Smoothly interpolate spoke angles to target
+                megaParent.spokeData.forEach(spoke => {
+                    if (spoke.targetAngle !== undefined) {
+                        const LERP = 0.06;
+                        let diff = spoke.targetAngle - spoke.angle;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        spoke.angle += diff * LERP;
+                    }
+                });
+            });
+            
+            // Update parents - they float independently with parentSpeed
+            parentNodes.forEach(parent => {
+                if (!parent.isDragging) {
+                    // Parents float around their own base position
+                    parent.floatAngleX += parent.floatSpeedX * parentSpeed;
+                    parent.floatAngleY += parent.floatSpeedY * parentSpeed;
+                    parent.floatAngleZ += parent.floatSpeedZ * parentSpeed;
+                    
+                    const newX = parent.baseX + Math.sin(parent.floatAngleX) * parent.floatRadiusX;
+                    const newY = parent.baseY + Math.cos(parent.floatAngleY) * parent.floatRadiusY;
+                    
+                    // Calculate velocity
+                    parent.vx = newX - parent.x;
+                    parent.vy = newY - parent.y;
+                    
+                    parent.x = newX;
+                    parent.y = newY;
+                    parent.z = Math.sin(parent.floatAngleZ) * parent.floatRadiusZ;
+                    
+                    // Update tentacle phase for baby animation using babySpeed
+                    parent.tentaclePhase += 0.01 * babySpeed;
+                } else {
+                    // When dragging, calculate velocity from position change
+                    parent.vx = parent.x - parent.prevX;
+                    parent.vy = parent.y - parent.prevY;
+                }
+                parent.prevX = parent.x;
+                parent.prevY = parent.y;
+                
+                // Apply inertia and autonomous movement to baby spokes
+                if (parent.spokeData.length > 0) {
+                    const speed = Math.sqrt(parent.vx * parent.vx + parent.vy * parent.vy);
+                    
+                    parent.spokeData.forEach((spoke, i) => {
+                        if (spoke.isBaby) {
+                            // Autonomous orbital drift (controlled by babySpeed)
+                            spoke.targetAngle += spoke.orbitSpeed * babySpeed;
+                            
+                            // 3D vertical movement
+                            if (!spoke.verticalAngle) spoke.verticalAngle = Math.random() * Math.PI * 2;
+                            spoke.verticalAngle += spoke.verticalSpeed * babySpeed;
+                            
+                            // Apply strong trailing inertia while dragging
+                            if (parent.isDragging) {
+                                const dragAngle = Math.atan2(parent.vy, parent.vx);
+                                const lagAngle = dragAngle + Math.PI; // direction behind motion
+                                let diffToLag = lagAngle - spoke.angle;
+                                while (diffToLag > Math.PI) diffToLag -= Math.PI * 2;
+                                while (diffToLag < -Math.PI) diffToLag += Math.PI * 2;
+                                const trailStrength = 0.18; // base pull toward lag zone
+                                // Offset each baby so they cluster behind but not identical
+                                const spreadOffset = ((i / parent.spokeData.length) - 0.5) * 0.9; // distribute
+                                const desired = lagAngle + spreadOffset * 0.6;
+                                let diffDesired = desired - spoke.targetAngle;
+                                while (diffDesired > Math.PI) diffDesired -= Math.PI * 2;
+                                while (diffDesired < -Math.PI) diffDesired += Math.PI * 2;
+                                spoke.targetAngle += diffDesired * trailStrength;
+                            } else if (speed > 0.1) {
+                                // Legacy inertia when moving but not actively dragging
+                                const dragAngle = Math.atan2(parent.vy, parent.vx);
+                                const lagAngle = dragAngle + Math.PI;
+                                let angleDiff = spoke.angle - lagAngle;
+                                while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                                while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                                const baseInertia = 0.12;
+                                const sizeFactor = Math.max(0.5, 28 / (parent.radius + 0.01));
+                                const inertiaFactor = baseInertia * Math.min(sizeFactor, 2.0);
+                                spoke.targetAngle += (-angleDiff) * inertiaFactor * 0.4;
+                            }
+                        }
+                    });
+                    
+                    // Apply repulsion between babies for even spreading
+                    parent.spokeData.forEach((spoke1, i) => {
+                        if (spoke1.isBaby) {
+                            let repulsionForce = 0;
+                            parent.spokeData.forEach((spoke2, j) => {
+                                if (i !== j && spoke2.isBaby) {
+                                    let angleDiff = spoke1.angle - spoke2.angle;
+                                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                                    
+                                    const distance = Math.abs(angleDiff);
+                                    if (distance < Math.PI / 2) {
+                                        const repulsion = (Math.PI / 2 - distance) * 0.015;
+                                        repulsionForce += Math.sign(angleDiff) * repulsion;
+                                    }
+                                }
+                            });
+                            spoke1.targetAngle += repulsionForce;
+                        }
+                    });
+                }
+                
+                // Smoothly interpolate spoke angles to target
+                parent.spokeData.forEach(spoke => {
+                    if (spoke.targetAngle !== undefined) {
+                        const LERP = 0.06;
+                        let diff = spoke.targetAngle - spoke.angle;
+                        while (diff > Math.PI) diff -= Math.PI * 2;
+                        while (diff < -Math.PI) diff += Math.PI * 2;
+                        spoke.angle += diff * LERP;
+                    }
+                });
+            });
+
+            // --- Parent node repulsion (siblings & cousins) ---
+            const PARENT_REPULSION_RADIUS = 140; // threshold distance for repulsion
+            const PARENT_REPULSION_FORCE = 0.08; // base force applied
+            for (let i = 0; i < parentNodes.length; i++) {
+                const a = parentNodes[i];
+                if (a.isDragging || a.isDemoting) continue;
+                for (let j = i + 1; j < parentNodes.length; j++) {
+                    const b = parentNodes[j];
+                    if (b.isDragging || b.isDemoting) continue;
+                    const dx = b.x - a.x;
+                    const dy = b.y - a.y;
+                    const dist = Math.sqrt(dx*dx + dy*dy) || 0.0001;
+                    if (dist < PARENT_REPULSION_RADIUS) {
+                        const overlap = (PARENT_REPULSION_RADIUS - dist) / PARENT_REPULSION_RADIUS; // 0..1
+                        const force = overlap * PARENT_REPULSION_FORCE;
+                        const nx = dx / dist;
+                        const ny = dy / dist;
+                        // Push their base positions apart for cumulative drift
+                        a.baseX -= nx * force * 30;
+                        a.baseY -= ny * force * 30;
+                        b.baseX += nx * force * 30;
+                        b.baseY += ny * force * 30;
+                    }
+                }
+            }
+
+            // --- Global baby repulsion across different parents ---
+            const BABY_GLOBAL_REPULSION_RADIUS = 55; // world distance threshold
+            const BABY_GLOBAL_REPULSION_FORCE = 0.015; // angular adjustment force
+            const allBabyEndpoints = [];
+            parentNodes.forEach(parent => {
+                parent.spokeData.forEach(spoke => {
+                    if (!spoke.isBaby || spoke.isDying) return;
+                    const worldX = parent.x + Math.cos(spoke.angle) * spoke.length;
+                    const worldY = parent.y + Math.sin(spoke.angle) * spoke.length;
+                    allBabyEndpoints.push({ parent, spoke, worldX, worldY });
+                });
+            });
+            for (let i = 0; i < allBabyEndpoints.length; i++) {
+                const A = allBabyEndpoints[i];
+                for (let j = i + 1; j < allBabyEndpoints.length; j++) {
+                    const B = allBabyEndpoints[j];
+                    // Skip if same parent (already handled locally)
+                    if (A.parent === B.parent) continue;
+                    const dx = B.worldX - A.worldX;
+                    const dy = B.worldY - A.worldY;
+                    const dist = Math.sqrt(dx*dx + dy*dy) || 0.0001;
+                    if (dist < BABY_GLOBAL_REPULSION_RADIUS) {
+                        const overlap = (BABY_GLOBAL_REPULSION_RADIUS - dist) / BABY_GLOBAL_REPULSION_RADIUS;
+                        const force = overlap * BABY_GLOBAL_REPULSION_FORCE * babySpeed;
+                        // Determine direction from parent center to baby to adjust angle away
+                        const angleAFromParent = Math.atan2(A.worldY - A.parent.y, A.worldX - A.parent.x);
+                        const angleBFromParent = Math.atan2(B.worldY - B.parent.y, B.worldX - B.parent.x);
+                        // Push angles apart
+                        A.spoke.targetAngle -= force * Math.sin(angleBFromParent - angleAFromParent);
+                        B.spoke.targetAngle += force * Math.sin(angleBFromParent - angleAFromParent);
+                    }
+                }
+            }
+        }
+
+        // Mouse interaction
+        let draggedNode = null;
+        let mouseX = 0;
+        let mouseY = 0;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        function getNodeAtPosition(x, y) {
+            const allNodes = [...megaParentNodes, ...parentNodes];
+            const sorted = allNodes.sort((a, b) => b.z - a.z);
+            
+            for (const node of sorted) {
+                const dx = x - node.x;
+                const dy = y - node.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance <= node.radius) return node;
+            }
+            return null;
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            
+            draggedNode = getNodeAtPosition(mouseX, mouseY);
+            if (draggedNode) {
+                draggedNode.isDragging = true;
+                offsetX = mouseX - draggedNode.x;
+                offsetY = mouseY - draggedNode.y;
+                canvas.classList.add('grabbing');
+                canvas.classList.remove('grab');
+            }
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+            
+            if (draggedNode) {
+                draggedNode.x = mouseX - offsetX;
+                draggedNode.y = mouseY - offsetY;
+                
+                // Update base position for all dragged nodes
+                draggedNode.baseX = draggedNode.x;
+                draggedNode.baseY = draggedNode.y;
+            } else {
+                const hoveredNode = getNodeAtPosition(mouseX, mouseY);
+                canvas.classList.toggle('grab', !!hoveredNode);
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            if (draggedNode) {
+                const releasedNode = draggedNode;
+                draggedNode.isDragging = false;
+                draggedNode = null;
+                canvas.classList.remove('grabbing');
+                const hoveredNode = getNodeAtPosition(mouseX, mouseY);
+                canvas.classList.toggle('grab', !!hoveredNode);
+                // Re-spread babies evenly around parent after drag release
+                if (releasedNode.nodeType === 'parent' && releasedNode.spokeData && releasedNode.spokeData.length) {
+                    const babies = releasedNode.spokeData.filter(s => s.isBaby);
+                    const count = babies.length;
+                    if (count > 0) {
+                        babies.forEach((baby, i) => {
+                            baby.targetAngle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.12;
+                        });
+                    }
+                }
+            }
+        });
+
+        // Double-click to spawn baby
+        let lastDblClick = 0;
+        canvas.addEventListener('dblclick', (e) => {
+            const now = performance.now();
+            if (now - lastDblClick < 180) return;
+            lastDblClick = now;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            const targetNode = getNodeAtPosition(x, y);
+            
+            console.log('DOUBLE CLICK:', targetNode ? `Found node type: ${targetNode.nodeType}` : 'No node found');
+            
+            // Double-click ANY node spawns a baby (just adds a spoke with dot)
+            if (targetNode) {
+                console.log('SPAWNING BABY on node type:', targetNode.nodeType);
+                spawnBaby(targetNode);
+            }
+        });
+
+        canvas.addEventListener('mouseleave', () => {
+            if (draggedNode) {
+                draggedNode.isDragging = false;
+                draggedNode = null;
+            }
+            canvas.classList.remove('grabbing', 'grab');
+        });
+
+        // Animation loop
+        let animationTime = 0;
+        function animate() {
+            animationTime += 1;
+            
+            updateNodes();
+
+            // Finalize demotions whose shrink is complete
+            const now = Date.now();
+            for (let i = parentNodes.length - 1; i >= 0; i--) {
+                const p = parentNodes[i];
+                if (p.isDemoting && p.demoteStartTime && (now - p.demoteStartTime) >= DEMOTE_SHRINK_DURATION) {
+                    const mp = p.megaParent;
+                    if (mp) {
+                        const dx = p.x - mp.x;
+                        const dy = p.y - mp.y;
+                        let angle = Math.atan2(dy, dx);
+                        if (!isFinite(angle)) angle = Math.random() * Math.PI * 2;
+                        const dist = Math.sqrt(dx*dx + dy*dy);
+                        const length = Math.max(mp.radius * 1.8, dist || (mp.radius * 2.3));
+                        const curvature = (Math.random() - 0.5) * 0.4;
+                        mp.spokeData.push({
+                            angle,
+                            targetAngle: angle + (Math.random() - 0.5) * 0.3,
+                            orbitSpeed: 0.001 + Math.random() * 0.002,
+                            verticalAngle: Math.random() * Math.PI * 2,
+                            verticalSpeed: 0.001 + Math.random() * 0.002,
+                            length,
+                            curvature,
+                            isBaby: true,
+                            birthTime: Date.now()
+                        });
+                        const childIdx = mp.children.indexOf(p);
+                        if (childIdx >= 0) mp.children.splice(childIdx, 1);
+                    }
+                    // Demotion particles (subtle gray collapse)
+                    createDemotionParticles(p.x, p.y, p.z || 0);
+                    parentNodes.splice(i, 1);
+                    updateStats();
+                }
+            }
+
+            // Remove dying babies after shrink completes
+            [...megaParentNodes, ...parentNodes].forEach(n => {
+                if (!n.spokeData) return;
+                for (let s = n.spokeData.length - 1; s >= 0; s--) {
+                    const spoke = n.spokeData[s];
+                    if (spoke.removeQueued) {
+                        // Burst already spawned at death start; silent removal now
+                        n.spokeData.splice(s, 1);
+                    }
+                }
+            });
+
+            // Immediate demotion trigger: as soon as a parent has zero babies, start smooth shrink (no waiting for lifecycle)
+            parentNodes.forEach(p => {
+                if (p.isDemoting) return;
+                if (!p.megaParent) return; // only attached parents demote
+                const babyCount = p.spokeData.filter(s => s.isBaby && !s.removeQueued && !s.isDying).length;
+                if (babyCount === 0) {
+                    p.isDemoting = true;
+                    p.demoteStartTime = Date.now();
+                    p.originalRadius = p.radius;
+                    // Increment current cycle demotions counter (may be reset at next lifecycle tick)
+                    cycleDemotions++;
+                }
+            });
+            
+            // Update burst particles (limit to prevent overflow)
+            if (burstParticles.length > 500) {
+                console.warn('Too many particles, clearing some');
+                burstParticles.splice(0, burstParticles.length - 500);
+            }
+            
+            for (let i = burstParticles.length - 1; i >= 0; i--) {
+                const p = burstParticles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.z += p.vz;
+                p.life -= p.decay;
+                
+                if (p.life <= 0) {
+                    burstParticles.splice(i, 1);
+                }
+            }
+            
+            // Clear canvas
+            ctx.fillStyle = '#f8f8f8';
+            ctx.fillRect(0, 0, width, height);
+
+            // Draw connections from mega-parents to parents
+            megaParentNodes.forEach(megaParent => {
+                megaParent.children.forEach(parent => {
+                    drawCurvedConnection(megaParent, parent, 0.2);
+                });
+            });
+            
+            // Draw connections between all mega-parents
+            for (let i = 0; i < megaParentNodes.length; i++) {
+                for (let j = i + 1; j < megaParentNodes.length; j++) {
+                    drawCurvedConnection(megaParentNodes[i], megaParentNodes[j], 0.15);
+                }
+            }
+
+            // Sort all nodes by z-depth
+            const allNodes = [...megaParentNodes, ...parentNodes];
+            const sortedNodes = allNodes.sort((a, b) => a.z - b.z);
+            
+            // Draw all nodes
+            sortedNodes.forEach(node => drawNode(node));
+            
+            // Draw particles (evolution green, baby death orange, demotion gray)
+            burstParticles.forEach(p => {
+                const scale = 1 + p.z / 150;
+                const screenSize = Math.abs(p.size * scale);
+                const opacity = Math.max(0, Math.min(1, p.life));
+                if (!isFinite(screenSize) || screenSize <= 0 || opacity <= 0) return;
+                if (!isFinite(p.x) || !isFinite(p.y)) return;
+
+                let color;
+                if (p.isEvolution) {
+                    color = { inner: [100, 255, 150], outer: [50, 200, 100] };
+                } else if (p.isDeath) {
+                    color = { inner: [255, 180, 60], outer: [255, 140, 40] };
+                } else if (p.isDemotion) {
+                    color = { inner: [160, 160, 160], outer: [110, 110, 110] };
+                } else {
+                    color = { inner: [255, 200, 100], outer: [255, 150, 50] }; // legacy burst fallback
+                }
+
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(${color.inner[0]}, ${color.inner[1]}, ${color.inner[2]}, ${opacity})`;
+                ctx.arc(p.x, p.y, screenSize, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(${color.outer[0]}, ${color.outer[1]}, ${color.outer[2]}, ${opacity * 0.28})`;
+                ctx.arc(p.x, p.y, screenSize * 1.5, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
