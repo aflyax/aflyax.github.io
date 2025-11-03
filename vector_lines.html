@@ -109,6 +109,11 @@ html
       <label>Zoom: <span class="value" id="zoomValue">1.00</span></label>
       <input type="range" id="zoomControl" min="0.125" max="1" step="0.025" value="1">
     </div>
+    
+    <div class="control-group">
+      <label>Trail Length: <span class="value" id="trailValue">Medium</span></label>
+      <input type="range" id="trailControl" min="0" max="2" step="0.1" value="1">
+    </div>
   </div>
   
   <script>
@@ -129,6 +134,7 @@ html
     let colorfulLines = true; // Toggle between colorful lines or grayscale lines
     let soundEnabled = false; // Default to sound off
     let currentInstrument = 'cello'; // Default to cello
+    let trailLength = 1; // Trail discreteness: 0 = very wispy, 1 = medium, 2 = discrete (no wisps)
     
     // Web Audio API setup
     let audioContext = null;
@@ -656,6 +662,14 @@ html
       zoom = parseFloat(e.target.value);
       document.getElementById('zoomValue').textContent = zoom.toFixed(2);
     });
+    
+    const trailControlSlider = document.getElementById('trailControl');
+    trailControlSlider.addEventListener('input', (e) => {
+      trailLength = parseFloat(e.target.value);
+      const labels = ['Very Wispy', 'Wispy', 'Medium', 'Less Wispy', 'Discrete'];
+      const index = Math.round(trailLength * 2); // Map 0-2 to 0-4
+      document.getElementById('trailValue').textContent = labels[index];
+    });
 
     // Store active wave influences
     const waves = [];
@@ -973,7 +987,14 @@ html
       let baseSpeedMultiplier = 1;
       
       t += minSpeed * baseSpeedMultiplier; // Use slider value
-      ctx.clearRect(0, 0, W, H);
+      
+      // Calculate trail fade based on trailLength slider
+      // trailLength: 0 = very wispy (0.02 opacity), 1 = medium (0.055), 2 = discrete (1.0 = no trails)
+      const trailFade = 0.02 + (trailLength * 0.49); // 0.02 at min, 0.51 at mid, 1.0 at max (complete clear)
+      
+      // Don't clear completely - leave trails based on slider
+      ctx.fillStyle = `rgba(0, 0, 0, ${trailFade})`;
+      ctx.fillRect(0, 0, W, H);
       
       // Update sound based on ripple activity
       updateSound();
@@ -1100,10 +1121,11 @@ html
       const startCol = Math.floor(offsetX / spacing);
       const startRow = Math.floor(offsetY / spacing);
 
-      // background glow
+      // background glow (adjust based on trail length)
+      const glowOpacity = 0.01 + (trailLength * 0.015); // 0.01 at min, 0.025 at mid, 0.04 at max
       const g = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W*0.55);
-      g.addColorStop(0, "rgba(0,0,0,0.1)");
-      g.addColorStop(1, "rgba(0,0,0,1)");
+      g.addColorStop(0, `rgba(0,0,0,${glowOpacity})`);
+      g.addColorStop(1, `rgba(0,0,0,${glowOpacity * 4})`);
       ctx.fillStyle = g;
       ctx.fillRect(0,0,W,H);
 
