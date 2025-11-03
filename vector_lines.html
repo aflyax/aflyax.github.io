@@ -1,0 +1,478 @@
+html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Vector Wave Field</title>
+  <style>
+    body {
+      margin: 0;
+      background: radial-gradient(circle at 50% 50%, #010203 0%, #000 70%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+    canvas {
+      width: min(94vmin, 1100px);
+      height: min(94vmin, 1100px);
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c" width="1100" height="1100"></canvas>
+  <script>
+    const canvas = document.getElementById("c");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
+
+    let zoom = 0.5; // Start at mid density (halfway between max 1 and min 0.125)
+    let offsetX = 0, offsetY = 0;
+    const baseSpacing = 15;
+    let t = 0;
+
+    // Store active wave influences
+    const waves = [];
+    
+    // Store color ripple waves
+    const colorRipples = [];
+    
+    // Speed wave zones
+    const speedWaves = [];
+    
+    function createSpeedWave() {
+      speedWaves.push({
+        x: Math.random() * W,
+        y: -200,
+        vx: (Math.random() - 0.5) * 1.5,
+        vy: 1.5 + Math.random() * 2,
+        radius: 250 + Math.random() * 350,
+        strength: 1.5 + Math.random() * 2.5, // Reduced strength
+        age: 0,
+        maxAge: 500 + Math.random() * 500 // Longer duration for smoother transitions
+      });
+    }
+    
+    // Start with some speed waves
+    for (let i = 0; i < 2; i++) {
+      createSpeedWave();
+    }
+    
+    // Weather patterns
+    const weatherPatterns = [];
+    
+    function createRandomWeatherPattern() {
+      const types = ['turbulence', 'calm', 'vortex', 'drift'];
+      const type = types[Math.floor(Math.random() * types.length)];
+      
+      weatherPatterns.push({
+        type: type,
+        x: Math.random() * W,
+        y: -200, // Start above screen
+        vx: (Math.random() - 0.5) * 2,
+        vy: 1 + Math.random() * 2,
+        radius: 150 + Math.random() * 200,
+        strength: 0.5 + Math.random() * 1.5,
+        age: 0,
+        maxAge: 300 + Math.random() * 300,
+        rotation: Math.random() * Math.PI * 2
+      });
+    }
+    
+    // Start with a few patterns
+    for (let i = 0; i < 3; i++) {
+      createRandomWeatherPattern();
+    }
+
+    // Add click handler to create waves
+    canvas.addEventListener("click", (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const clickX = (e.clientX - rect.left) * scaleX;
+      const clickY = (e.clientY - rect.top) * scaleY;
+      
+      // Create combined color and speed ripple
+      colorRipples.push({
+        x: clickX,
+        y: clickY,
+        age: 0,
+        maxAge: 200,
+        waveSpeed: 5
+      });
+      
+      speedWaves.push({
+        x: clickX,
+        y: clickY,
+        vx: 0,
+        vy: 0,
+        radius: 500,
+        strength: 3,
+        age: 0,
+        maxAge: 250
+      });
+    });
+    
+    // Add zoom with mouse wheel
+    canvas.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+      
+      const zoomSpeed = 0.1;
+      const delta = e.deltaY > 0 ? zoomSpeed : -zoomSpeed;
+      const newZoom = Math.max(0.125, Math.min(1, zoom + delta)); // Min zoom 0.125 (least dense), max 1 (most dense)
+      
+      if (newZoom !== zoom) {
+        // Adjust offset to zoom toward mouse position
+        const zoomFactor = newZoom / zoom;
+        offsetX = mouseX - (mouseX - offsetX) * zoomFactor;
+        offsetY = mouseY - (mouseY - offsetY) * zoomFactor;
+        zoom = newZoom;
+      }
+    }, { passive: false });
+
+    function draw() {
+      // Calculate base speed multiplier from speed waves
+      let baseSpeedMultiplier = 1;
+      
+      t += 0.02 * baseSpeedMultiplier; // Base speed back to normal
+      ctx.clearRect(0, 0, W, H);
+
+      // Update waves
+      for (let i = waves.length - 1; i >= 0; i--) {
+        waves[i].age++;
+        if (waves[i].age > waves[i].maxAge) {
+          waves.splice(i, 1);
+        }
+      }
+      
+      // Update color ripples
+      for (let i = colorRipples.length - 1; i >= 0; i--) {
+        colorRipples[i].age++;
+        if (colorRipples[i].age > colorRipples[i].maxAge) {
+          colorRipples.splice(i, 1);
+        }
+      }
+      
+      // Update speed waves
+      for (let i = speedWaves.length - 1; i >= 0; i--) {
+        const sw = speedWaves[i];
+        sw.x += sw.vx;
+        sw.y += sw.vy;
+        sw.age++;
+        
+        // Random direction changes for moving waves
+        if ((sw.vx !== 0 || sw.vy !== 0) && Math.random() < 0.015) {
+          sw.vx += (Math.random() - 0.5) * 0.8;
+          sw.vy += (Math.random() - 0.5) * 0.8;
+          // Keep reasonable speeds
+          const speed = Math.sqrt(sw.vx * sw.vx + sw.vy * sw.vy);
+          if (speed > 3) {
+            sw.vx = (sw.vx / speed) * 3;
+            sw.vy = (sw.vy / speed) * 3;
+          }
+        }
+        
+        if (sw.y > H + 400 || sw.age > sw.maxAge) {
+          speedWaves.splice(i, 1);
+          if (Math.random() < 0.4) {
+            createSpeedWave();
+          }
+        }
+      }
+      
+      // Occasionally spawn new speed waves
+      if (Math.random() < 0.008 && speedWaves.length < 4) {
+        createSpeedWave();
+      }
+      
+      // Update weather patterns
+      for (let i = weatherPatterns.length - 1; i >= 0; i--) {
+        const wp = weatherPatterns[i];
+        wp.x += wp.vx;
+        wp.y += wp.vy;
+        wp.age++;
+        wp.rotation += 0.02;
+        
+        // Random direction changes
+        if (Math.random() < 0.02) {
+          wp.vx += (Math.random() - 0.5) * 0.5;
+          wp.vy += (Math.random() - 0.5) * 0.5;
+          // Keep reasonable speeds
+          const speed = Math.sqrt(wp.vx * wp.vx + wp.vy * wp.vy);
+          if (speed > 3) {
+            wp.vx = (wp.vx / speed) * 3;
+            wp.vy = (wp.vy / speed) * 3;
+          }
+        }
+        
+        // Remove if off screen or expired
+        if (wp.y > H + 300 || wp.age > wp.maxAge) {
+          weatherPatterns.splice(i, 1);
+          // Create a new one to maintain variety
+          if (Math.random() < 0.3) {
+            createRandomWeatherPattern();
+          }
+        }
+      }
+      
+      // Occasionally spawn new patterns
+      if (Math.random() < 0.01 && weatherPatterns.length < 5) {
+        createRandomWeatherPattern();
+      }
+      
+      // Calculate visible grid based on zoom
+      const spacing = baseSpacing / zoom;
+      const cols = Math.ceil(W / spacing) + 2;
+      const rows = Math.ceil(H / spacing) + 2;
+      const startCol = Math.floor(offsetX / spacing);
+      const startRow = Math.floor(offsetY / spacing);
+
+      // background glow
+      const g = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W*0.55);
+      g.addColorStop(0, "rgba(0,0,0,0.1)");
+      g.addColorStop(1, "rgba(0,0,0,1)");
+      ctx.fillStyle = g;
+      ctx.fillRect(0,0,W,H);
+
+      ctx.lineCap = "round";
+      
+      // Helper function to get color ripple effect at a point
+      function getColorRippleEffect(x, y) {
+        let rippleStrength = 0;
+        
+        for (const cr of colorRipples) {
+          const dx = x - cr.x;
+          const dy = y - cr.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          const waveRadius = cr.age * cr.waveSpeed;
+          const waveWidth = 50;
+          const waveDist = Math.abs(dist - waveRadius);
+          
+          // Check if point is in the wave band
+          if (waveDist < waveWidth) {
+            const bandIntensity = 1 - (waveDist / waveWidth);
+            const progress = cr.age / cr.maxAge;
+            const fadeOut = 1 - progress;
+            rippleStrength = Math.max(rippleStrength, bandIntensity * fadeOut);
+          }
+        }
+        
+        return rippleStrength;
+      }
+      
+      // Helper function to get local speed multiplier
+      function getSpeedMultiplier(x, y) {
+        let speedMult = 1;
+        
+        for (const sw of speedWaves) {
+          const dx = x - sw.x;
+          const dy = y - sw.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          
+          if (dist < sw.radius) {
+            const falloff = 1 - (dist / sw.radius);
+            const smoothFalloff = falloff * falloff * falloff; // Cubic falloff for even smoother edges
+            const progress = sw.age / sw.maxAge;
+            const fadeOut = Math.sin(progress * Math.PI); // Fade in and out
+            const smoothFadeOut = fadeOut * fadeOut; // Square for smoother fade
+            const speedBoost = smoothFalloff * smoothFadeOut * sw.strength;
+            speedMult = Math.max(speedMult, 1 + speedBoost * 0.5); // Reduced intensity
+          }
+        }
+        
+        return speedMult;
+      }
+
+      for (let y = 0; y < rows; y++) {
+        for (let x = 0; x < cols; x++) {
+          const gridX = startCol + x;
+          const gridY = startRow + y;
+          const px = gridX * spacing + spacing * 0.5 - offsetX;
+          const py = gridY * spacing + spacing * 0.5 - offsetY;
+          
+          // Skip if outside canvas
+          if (px < -spacing || px > W + spacing || py < -spacing || py > H + spacing) continue;
+
+          // Check if this point is affected by color ripple
+
+          // Get local speed multiplier
+          const localSpeed = getSpeedMultiplier(px, py);
+          const speedT = t * localSpeed; // Use local speed for calculations
+
+          // Base wave field with varying patterns
+          const patternSelect = Math.sin(speedT * 0.15) * 0.5 + 0.5;
+          
+          // Pattern 1: Original flowing waves
+          const n1 = Math.sin((gridX * 0.3) + speedT * 1.3 + Math.sin(gridY * 0.15 + speedT * 0.4));
+          const n2 = Math.cos((gridY * 0.28) - speedT * 1.1 + Math.sin(gridX * 0.1 - speedT * 0.3));
+          
+          // Pattern 2: Circular/radial waves
+          const centerX = W * 0.5 + Math.cos(speedT * 0.3) * W * 0.2;
+          const centerY = H * 0.5 + Math.sin(speedT * 0.25) * H * 0.2;
+          const distToCenter = Math.sqrt((px - centerX) ** 2 + (py - centerY) ** 2);
+          const radialAngle = Math.atan2(py - centerY, px - centerX);
+          const n3 = Math.sin(distToCenter * 0.02 - speedT * 2) + Math.cos(radialAngle * 3 + speedT);
+          
+          // Pattern 3: Grid interference
+          const n4 = Math.sin(gridX * 0.4 + speedT) * Math.cos(gridY * 0.4 - speedT * 0.8);
+          
+          // Blend patterns over time
+          const baseAngle = n1 * 1.2 + n2 * 0.9 + n3 * patternSelect * 0.8 + n4 * (1 - patternSelect) * 0.6;
+          
+          // Add spreading wave effects from clicks
+          let waveEffect = 0;
+          for (const wave of waves) {
+            const dx = px - wave.x;
+            const dy = py - wave.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const progress = wave.age / wave.maxAge;
+            
+            // Wave spreads outward
+            const waveSpeed = 4;
+            const waveRadius = wave.age * waveSpeed;
+            const waveDist = Math.abs(dist - waveRadius);
+            const waveWidth = 60;
+            
+            if (waveDist < waveWidth) {
+              const intensity = (1 - progress) * (1 - waveDist / waveWidth);
+              const angleFromWave = Math.atan2(dy, dx);
+              waveEffect += Math.cos(angleFromWave) * intensity * 1.2;
+            }
+          }
+          
+          const angle = baseAngle + waveEffect;
+
+          // Apply weather pattern effects
+          let weatherAngleEffect = 0;
+          let weatherSizeEffect = 1;
+          let weatherColorShift = 0;
+          
+          for (const wp of weatherPatterns) {
+            const dx = px - wp.x;
+            const dy = py - wp.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist < wp.radius) {
+              const falloff = 1 - (dist / wp.radius);
+              const smoothFalloff = falloff * falloff; // Smoother falloff
+              const intensity = smoothFalloff * wp.strength * 0.5; // Reduced intensity
+              
+              switch (wp.type) {
+                case 'turbulence':
+                  // Chaotic swirling motion
+                  weatherAngleEffect += Math.sin(dist * 0.05 + wp.rotation) * intensity * 0.8;
+                  weatherSizeEffect *= 1 + intensity * 0.15;
+                  break;
+                  
+                case 'calm':
+                  // Smooth, organized flow
+                  weatherAngleEffect += Math.sin(wp.rotation) * intensity * 0.3;
+                  weatherSizeEffect *= 1 - intensity * 0.1;
+                  weatherColorShift += intensity * 30;
+                  break;
+                  
+                case 'vortex':
+                  // Circular motion
+                  const vortexAngle = Math.atan2(dy, dx) + Math.PI * 0.5;
+                  weatherAngleEffect += Math.sin(vortexAngle + dist * 0.02) * intensity * 0.6;
+                  weatherSizeEffect *= 1 + intensity * 0.2;
+                  break;
+                  
+                case 'drift':
+                  // Directional push
+                  const driftAngle = Math.atan2(wp.vy, wp.vx);
+                  weatherAngleEffect += Math.sin(driftAngle) * intensity * 0.4;
+                  weatherColorShift -= intensity * 20;
+                  break;
+              }
+            }
+          }
+          
+          const finalAngle = angle + weatherAngleEffect;
+
+          // magnitude / brightness
+          const mag = (Math.sin(gridX * 0.25 + speedT * 1.1) + Math.cos(gridY * 0.21 - speedT * 1.3)) * 0.35 + 0.65;
+          const len = (12 + mag * 16) * weatherSizeEffect / zoom; // Apply weather size effect
+
+          // position offset (makes it look liquid)
+          const ox = Math.sin(speedT * 0.7 + gridY * 0.3) * 4;
+          const oy = Math.cos(speedT * 0.6 + gridX * 0.25) * 4;
+
+          const x1 = px + ox - Math.cos(finalAngle) * (len * 0.5);
+          const y1 = py + oy - Math.sin(finalAngle) * (len * 0.5);
+          const x2 = px + ox + Math.cos(finalAngle) * (len * 0.5);
+          const y2 = py + oy + Math.sin(finalAngle) * (len * 0.5);
+
+          // More varied primary colors
+          const baseHue = (gridX * 3 + gridY * 2.5 + t * 40 + weatherColorShift) % 360; // Increased variation
+          
+          // Expand primary color ranges for more variety
+          let primaryHue;
+          if (baseHue < 90) {
+            primaryHue = baseHue * 0.5; // 0-45 red to orange
+          } else if (baseHue < 180) {
+            primaryHue = 60 + (baseHue - 90) * 1.0; // 60-150 yellow to green
+          } else if (baseHue < 270) {
+            primaryHue = 150 + (baseHue - 180) * 1.0; // 150-240 cyan to blue
+          } else {
+            primaryHue = 240 + (baseHue - 270) * 1.33; // 240-360 blue to red
+          }
+          
+          const angleHue = (finalAngle * 57.3) % 360;
+          const anglePrimary = angleHue < 120 ? angleHue * 0.5 : angleHue < 240 ? 60 + (angleHue - 120) * 1.5 : 240 + (angleHue - 240) * 1.0;
+          const hue = primaryHue * 0.6 + anglePrimary * 0.4; // More angle influence for variety
+          const saturation = 55 + mag * 30; // Wider saturation range
+          
+          // Apply color ripple effect
+          const rippleStrength = getColorRippleEffect(px, py);
+          let finalHue, finalSat, finalLight;
+          
+          if (rippleStrength > 0) {
+            // Blend to black and white based on ripple strength
+            const bwValue = mag * 100; // 0-100 for grayscale
+            finalHue = 0;
+            finalSat = 0;
+            finalLight = bwValue * (1 - rippleStrength * 0.8) + (40 + mag*35) * (1 - rippleStrength);
+            
+            ctx.strokeStyle = `hsla(${finalHue}, ${finalSat}%, ${finalLight}%, ${0.6 + mag*0.4})`;
+          } else {
+            ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${40 + mag*35}%, ${0.6 + mag*0.4})`;
+          }
+          
+          ctx.lineWidth = (1.8 - mag * 0.6) / zoom;
+
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+
+          // little head on the end
+          ctx.beginPath();
+          ctx.arc(x2, y2, (1.4 + mag*1.1) / zoom, 0, Math.PI*2);
+          
+          if (rippleStrength > 0) {
+            const bwValue = mag * 100;
+            finalHue = 0;
+            finalSat = 0;
+            finalLight = bwValue * (1 - rippleStrength * 0.8) + (50 + mag*30) * (1 - rippleStrength);
+            ctx.fillStyle = `hsla(${finalHue}, ${finalSat}%, ${finalLight}%, ${0.5 + mag*0.4})`;
+          } else {
+            ctx.fillStyle = `hsla(${hue}, 90%, ${50 + mag*30}%, ${0.5 + mag*0.4})`;
+          }
+          
+          ctx.fill();
+        }
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  </script>
+</body>
+</html>
