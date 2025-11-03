@@ -67,7 +67,7 @@ html
     
     <div class="control-group" style="display: flex; gap: 10px; align-items: center;">
       <label class="checkbox-label" style="flex: 0 0 auto; margin: 0;">
-        <input type="checkbox" id="enableSound">
+        <input type="checkbox" id="enableSound" checked>
         Enable Sound
       </label>
       <select id="instrumentSelect" style="flex: 1; padding: 5px; background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer;">
@@ -132,7 +132,7 @@ html
     let maxSpeedBoost = 1.1;
     let baseSpacingMultiplier = 0.75; // Start at 0.75 density
     let colorfulLines = true; // Toggle between colorful lines or grayscale lines
-    let soundEnabled = false; // Default to sound off
+    let soundEnabled = true; // Default to sound on
     let currentInstrument = 'cello'; // Default to cello
     let trailLength = 1; // Trail discreteness: 0 = very wispy, 1 = medium, 2 = discrete (no wisps)
     
@@ -1000,7 +1000,7 @@ html
       updateSound();
       
       // Play melody notes
-      playNextMelodyNote();
+      // playNextMelodyNote(); // Disabled - melody no longer plays automatically
 
       // Update waves
       for (let i = waves.length - 1; i >= 0; i--) {
@@ -1475,8 +1475,8 @@ html
       requestAnimationFrame(draw);
     }
 
-    // Don't initialize audio on page load - wait for user to enable sound
-    // initAudio();
+    // Initialize audio on page load since sound is enabled by default
+    initAudio();
     
     draw();
   </script>
