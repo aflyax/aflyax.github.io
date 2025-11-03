@@ -89,8 +89,8 @@ html
     </div>
     
     <div class="control-group">
-      <label>Density: <span class="value" id="densityValue">1.00</span></label>
-      <input type="range" id="density" min="0.125" max="1" step="0.025" value="1">
+      <label>Density: <span class="value" id="densityValue">0.75</span></label>
+      <input type="range" id="density" min="0.125" max="1" step="0.025" value="0.75">
     </div>
     
     <div class="control-group">
@@ -128,7 +128,7 @@ html
     let minSpeed = 0.01;
     let maxSpeedBoost = 3;
     let maxActiveRipples = 4;
-    let baseSpacingMultiplier = 1; // Start at max density
+    let baseSpacingMultiplier = 0.75; // Start at 0.75 density
     let colorWaveFrequency = 0.5; // Color wave spawn frequency
     let rippleFrequency = 0.5; // Auto ripple frequency
     let colorfulLines = true; // Toggle between colorful lines or grayscale lines
@@ -809,27 +809,24 @@ html
           let finalHue, finalSat, finalLight;
           
           if (colorfulLines) {
-            // Colorful lines mode: normal colors, ripple makes grayscale
+            // Colorful lines mode: ripple enhances color (brighter, more saturated)
             if (rippleStrength > 0) {
-              // Blend to black and white based on ripple strength
-              const bwValue = mag * 100; // 0-100 for grayscale
-              finalHue = 0;
-              finalSat = 0;
-              finalLight = bwValue * (1 - rippleStrength * 0.8) + (60 + mag*25) * (1 - rippleStrength); // Lighter (was 40 + mag*35)
-              
-              ctx.strokeStyle = `hsla(${finalHue}, ${finalSat}%, ${finalLight}%, ${0.6 + mag*0.4})`;
+              // Increase saturation and brightness in the ripple
+              const boostedSat = saturation + (rippleStrength * 40); // Add up to 40% saturation
+              const boostedLight = (60 + mag*25) + (rippleStrength * 20); // Add up to 20% brightness
+              ctx.strokeStyle = `hsla(${hue}, ${boostedSat}%, ${boostedLight}%, ${0.6 + mag*0.4})`;
             } else {
-              ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${60 + mag*25}%, ${0.6 + mag*0.4})`; // Lighter (was 40 + mag*35)
+              ctx.strokeStyle = `hsla(${hue}, ${saturation}%, ${60 + mag*25}%, ${0.6 + mag*0.4})`;
             }
           } else {
-            // Grayscale lines mode: grayscale normally, ripple makes colorful
+            // Grayscale lines mode: ripple creates brighter grayscale
             if (rippleStrength > 0) {
-              // Make colorful based on ripple strength
-              ctx.strokeStyle = `hsla(${hue}, ${saturation * rippleStrength}%, ${60 + mag*25}%, ${0.6 + mag*0.4})`; // Lighter
+              // Increase brightness in the ripple
+              const boostedLight = (60 + mag*25) + (rippleStrength * 25); // Add up to 25% brightness
+              ctx.strokeStyle = `hsla(0, 0%, ${boostedLight}%, ${0.6 + mag*0.4})`;
             } else {
               // Grayscale
-              const bwValue = mag * 100;
-              ctx.strokeStyle = `hsla(0, 0%, ${60 + mag*25}%, ${0.6 + mag*0.4})`; // Lighter
+              ctx.strokeStyle = `hsla(0, 0%, ${60 + mag*25}%, ${0.6 + mag*0.4})`;
             }
           }
           
@@ -845,24 +842,22 @@ html
           ctx.arc(x2, y2, (1.4 + mag*1.1) * lineSizeMultiplier / zoom, 0, Math.PI*2);
           
           if (colorfulLines) {
-            // Colorful lines mode
+            // Colorful lines mode: ripple enhances color
             if (rippleStrength > 0) {
-              const bwValue = mag * 100;
-              finalHue = 0;
-              finalSat = 0;
-              finalLight = bwValue * (1 - rippleStrength * 0.8) + (65 + mag*25) * (1 - rippleStrength); // Lighter (was 50 + mag*30)
-              ctx.fillStyle = `hsla(${finalHue}, ${finalSat}%, ${finalLight}%, ${0.5 + mag*0.4})`;
+              const boostedSat = (saturation + 15) + (rippleStrength * 45); // Add up to 45% saturation
+              const boostedLight = (65 + mag*25) + (rippleStrength * 20); // Add up to 20% brightness
+              ctx.fillStyle = `hsla(${hue}, ${boostedSat}%, ${boostedLight}%, ${0.5 + mag*0.4})`;
             } else {
-              ctx.fillStyle = `hsla(${hue}, ${saturation + 15}%, ${65 + mag*25}%, ${0.5 + mag*0.4})`; // Pastel - lower sat, lighter (was 90%, 50 + mag*30)
+              ctx.fillStyle = `hsla(${hue}, ${saturation + 15}%, ${65 + mag*25}%, ${0.5 + mag*0.4})`;
             }
           } else {
-            // Grayscale lines mode
+            // Grayscale lines mode: ripple creates brighter grayscale
             if (rippleStrength > 0) {
-              // Make colorful based on ripple strength
-              ctx.fillStyle = `hsla(${hue}, ${(saturation + 15) * rippleStrength}%, ${65 + mag*25}%, ${0.5 + mag*0.4})`; // Pastel
+              const boostedLight = (65 + mag*25) + (rippleStrength * 25); // Add up to 25% brightness
+              ctx.fillStyle = `hsla(0, 0%, ${boostedLight}%, ${0.5 + mag*0.4})`;
             } else {
               // Grayscale
-              ctx.fillStyle = `hsla(0, 0%, ${65 + mag*25}%, ${0.5 + mag*0.4})`; // Lighter
+              ctx.fillStyle = `hsla(0, 0%, ${65 + mag*25}%, ${0.5 + mag*0.4})`;
             }
           }
           
