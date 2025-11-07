@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Enneagram Questionnaire & Visualizer</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --card: #121a2b;
+      --muted: #9fb0d1;
+      --text: #e8f0ff;
+      --accent: #6ea8fe;
+      --accent-2: #8be9c7;
+      --danger: #ff7b7b;
+      --good: #9be27f;
+      --grid: #202a42;
+      --ring: #1a2338;
+      --bar: #2a3757;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius: 16px;
+    }
+    * { box-sizing: border-box }
+    html, body { height: 100% }
+    body {
+      margin: 0; background: radial-gradient(1200px 600px at 20% -10%, #15223c, #0b1220 60%),
+                 radial-gradient(800px 500px at 120% 20%, rgba(110,168,254,.15), transparent 60%),
+                 var(--bg);
+      color: var(--text); font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    }
+    a { color: var(--accent) }
+    .container {
+      max-width: 1100px; margin: 32px auto; padding: 0 16px 48px;
+    }
+    header {
+      display: grid; gap: 8px; margin-bottom: 18px;
+    }
+    h1 { font-weight: 750; letter-spacing: .2px; margin: 0; font-size: clamp(26px, 2.3vw, 34px) }
+    .sub { color: var(--muted) }
+    .grid {
+      display: grid; gap: 18px;
+      grid-template-columns: 1.2fr .8fr;
+    }
+    @media (max-width: 980px) { .grid { grid-template-columns: 1fr } }
+
+    .card {
+      background: linear-gradient(180deg, #111a2e, #0f182b);
+      border: 1px solid #1b2743; border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+    .card > .head {
+      padding: 16px 18px; border-bottom: 1px solid #1b2743;
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    }
+    .card > .body { padding: 18px }
+    .muted { color: var(--muted) }
+    .tag {
+      font-size: 12px; color: #bcd2ff; background: #15203a; border: 1px solid #213055;
+      padding: 3px 8px; border-radius: 999px;
+    }
+
+    /* Questionnaire */
+    .q-list { display: grid; gap: 12px; }
+    .q {
+      background: #0e1730; border: 1px solid #1b2743; border-radius: 12px;
+      padding: 14px 14px 6px; box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
+    }
+    .q .qt { font-weight: 600; margin: 0 0 10px 0 }
+    .scale { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 8px }
+    .scale label {
+      display: flex; gap: 8px; align-items: center; justify-content: center;
+      background: #0a1227; border: 1px solid #1f2a48; border-radius: 10px; padding: 10px 6px;
+      cursor: pointer; user-select: none; font-weight: 600; color: #c7d6fb;
+      transition: transform .03s ease-in-out, border-color .15s;
+    }
+    .scale input { position: absolute; opacity: 0; pointer-events: none }
+    .scale input:checked + label { border-color: var(--accent); outline: 1px solid rgba(110,168,254,.4) }
+    .scale label:active { transform: scale(.98) }
+    .scale .sublabel { font-size: 11.5px; color: #94a7d1; margin-top: 2px; text-align: center }
+
+    .actions {
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px;
+    }
+    .btn {
+      appearance: none; border: 1px solid #203055; background: #15203a; color: #cfe1ff;
+      padding: 10px 14px; border-radius: 12px; font-weight: 700; cursor: pointer;
+    }
+    .btn.primary { background: linear-gradient(180deg, #6ea8fe, #4e86ea); border-color: #73a7ff; color: #071227 }
+    .btn:disabled { opacity: .55; cursor: not-allowed }
+    .progress {
+      height: 10px; background: #0d162d; border: 1px solid #1b2743; border-radius: 999px; overflow: hidden;
+    }
+    .progress > div { height: 100%; width: 0%; background: linear-gradient(90deg, #8be9c7, #6ea8fe); transition: width .2s }
+    .legend { display: flex; justify-content: space-between; font-size: 12px; margin-top: 6px; color: #9ab2e8 }
+
+    /* Results */
+    .result {
+      display: grid; gap: 16px;
+      grid-template-columns: 1fr; align-items: start;
+    }
+    .toptype {
+      display: grid; gap: 8px; background: #0e1630; border: 1px solid #1b2743; border-radius: 14px; padding: 14px;
+    }
+    .toptype .title { font-weight: 800; font-size: 18px }
+    .pair { display: flex; gap: 10px; flex-wrap: wrap }
+    .pill {
+      background: #15203a; border: 1px solid #213055; color: #cfe1ff;
+      padding: 7px 10px; border-radius: 999px; font-weight: 600; font-size: 12.5px;
+    }
+
+    /* Bars */
+    .bars { display: grid; gap: 8px }
+    .bar {
+      display: grid; grid-template-columns: 32px 1fr 46px; gap: 10px; align-items: center
+    }
+    .bar .track { height: 12px; background: var(--bar); border-radius: 999px; overflow: hidden; border: 1px solid #213055 }
+    .bar .fill { height: 100%; width: 0%; background: linear-gradient(90deg, #8be9c7, #6ea8fe) }
+    .bar .label { text-align: right; color: #cfe1ff; font-weight: 700 }
+
+    /* Canvas pane */
+    .viz {
+      display: grid; gap: 16px;
+    }
+    .viz .canvas {
+      background: radial-gradient(200px 200px at 10% 0%, rgba(110,168,254,.06), transparent 40%),
+                  conic-gradient(from 0deg, rgba(139,233,199,.03), rgba(139,233,199,0) 35%),
+                  #0b1328;
+      border: 1px solid #1b2743; border-radius: 16px; padding: 16px; box-shadow: var(--shadow);
+    }
+    .viz svg { width: 100%; height: auto; display: block }
+    .note {
+      font-size: 12.5px; color: var(--muted);
+    }
+    .footer-note { color: var(--muted); font-size: 12px; margin-top: 6px }
+    .kbd {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+      background: #0d172e; border: 1px solid #22345e; padding: 1px 6px; border-radius: 6px; font-size: 12px;
+      color: #cde1ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Enneagram Questionnaire & Visual Display</h1>
+      <div class="sub">Rate how well each statement describes you. When you finish, you’ll get a ranked type list, a radar plot, and the classic Enneagram wiring with your focus highlighted.</div>
+    </header>
+
+    <div class="grid">
+      <!-- Left: Questionnaire -->
+      <section class="card" aria-labelledby="q-head">
+        <div class="head">
+          <div>
+            <div id="q-head" class="muted">Questionnaire</div>
+            <div class="legend">
+              <span>Left = Agree</span> <span>Right = Disagree</span>
+            </div>
+          </div>
+          <span class="tag"><span id="progress-count">0</span>/<span id="total-count">0</span> answered</span>
+        </div>
+        <div class="body">
+          <div class="progress" aria-hidden="true"><div id="progress-bar"></div></div>
+          <div class="q-list" id="q-list" aria-live="polite"></div>
+          <div class="actions">
+            <button id="submit" class="btn primary" disabled>See My Results</button>
+            <button id="reset" class="btn" type="button">Reset</button>
+            <span class="muted">Tip: use <span class="kbd">1</span>…<span class="kbd">5</span> keys (5 = Agree, 1 = Disagree) on the focused question.</span>
+          </div>
+          <div class="footer-note">This is an informal, educational tool—not a clinical assessment.</div>
+        </div>
+      </section>
+
+      <!-- Right: Results & Visuals -->
+      <section class="card">
+        <div class="head">
+          <div class="muted">Your Enneagram Results</div>
+          <span class="tag">Updates live after submission</span>
+        </div>
+        <div class="body result">
+          <div class="toptype" id="toptype">
+            <div class="title">No results yet</div>
+            <div class="muted">Fill out the questionnaire and click <strong>See My Results</strong>.</div>
+          </div>
+
+          <div class="viz">
+            <div class="canvas">
+              <svg id="radar" viewBox="0 0 600 600" role="img" aria-label="Enneagram radar visualization">
+                <!-- drawn by JS -->
+              </svg>
+            </div>
+            <div class="bars" id="bars" aria-live="polite" aria-label="Scores by type">
+              <!-- bars inserted by JS -->
+            </div>
+            <div class="note">The radar shows your relative intensity on each of the nine points. The wiring overlay (1-4-2-8-5-7-1 and 9-3-6-9) is the classic Enneagram figure; your highest type node is highlighted.</div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    // --- Data ---------------------------------------------------------------
+    const TYPES = [
+      { id: 1, name: "Type 1 • Reformer", short: "1", desc: "Principled, improvement-oriented, attuned to right/wrong; core desire: to be good/ethical." },
+      { id: 2, name: "Type 2 • Helper", short: "2", desc: "Warm, supportive, relationship-focused; core desire: to be wanted/loved." },
+      { id: 3, name: "Type 3 • Achiever", short: "3", desc: "Goal-driven, adaptable, image-conscious; core desire: to feel valuable through success." },
+      { id: 4, name: "Type 4 • Individualist", short: "4", desc: "Introspective, expressive, identity-seeking; core desire: to find authentic self/meaning." },
+      { id: 5, name: "Type 5 • Investigator", short: "5", desc: "Curious, analytical, boundaries around energy; core desire: to be capable and competent." },
+      { id: 6, name: "Type 6 • Loyalist", short: "6", desc: "Vigilant, loyal, security-oriented; core desire: to find safety and certainty." },
+      { id: 7, name: "Type 7 • Enthusiast", short: "7", desc: "Future-focused, upbeat, options-seeking; core desire: to avoid pain/limitations." },
+      { id: 8, name: "Type 8 • Challenger", short: "8", desc: "Direct, strong-willed, protective; core desire: to be independent and in control." },
+      { id: 9, name: "Type 9 • Peacemaker", short: "9", desc: "Easygoing, harmonizing, self-forgetting; core desire: to maintain inner/outer peace." },
+    ];
+
+    // 27 items: 3 per type, Likert 1–5
+    const ITEMS = [
+      // 1 Reformer
+      { t:1, text:"I notice errors and feel compelled to fix them." },
+      { t:1, text:"I hold myself to high standards and feel guilty when I fall short." },
+      { t:1, text:"I want to be ethical, responsible, and correct." },
+      // 2 Helper
+      { t:2, text:"I anticipate others’ needs and offer help readily." },
+      { t:2, text:"Being needed makes me feel valued." },
+      { t:2, text:"I sometimes neglect my own needs while caring for others." },
+      // 3 Achiever
+      { t:3, text:"I set ambitious goals and work tirelessly to meet them." },
+      { t:3, text:"I adapt my image to succeed in different settings." },
+      { t:3, text:"Recognition or measurable results matter a lot to me." },
+      // 4 Individualist
+      { t:4, text:"I feel different from others and value authenticity." },
+      { t:4, text:"I experience emotions intensely and express them." },
+      { t:4, text:"I long for a unique identity and depth of meaning." },
+      // 5 Investigator
+      { t:5, text:"I seek knowledge, observe before engaging, and conserve energy." },
+      { t:5, text:"I need ample private time to recharge." },
+      { t:5, text:"Competence matters more than popularity." },
+      // 6 Loyalist
+      { t:6, text:"I scan for risks and plan for worst-case scenarios." },
+      { t:6, text:"I value security, loyalty, and trustworthy structures." },
+      { t:6, text:"I seek reassurance when uncertain." },
+      // 7 Enthusiast
+      { t:7, text:"I reframe negatives and look for the bright side." },
+      { t:7, text:"I like to keep many options open and plan for fun." },
+      { t:7, text:"I dislike feeling trapped in pain or limitation." },
+      // 8 Challenger
+      { t:8, text:"I face conflict directly and speak my mind." },
+      { t:8, text:"I dislike being controlled and protect the vulnerable." },
+      { t:8, text:"I move decisively when something feels unjust." },
+      // 9 Peacemaker
+      { t:9, text:"I go along to keep the peace and avoid conflict." },
+      { t:9, text:"I sometimes merge with others’ agendas and lose track of my own." },
+      { t:9, text:"Comfort, routine, and harmony are important to me." },
+    ];
+
+    // --- Render questionnaire ----------------------------------------------
+    const qList = document.getElementById('q-list');
+    const submitBtn = document.getElementById('submit');
+    const resetBtn  = document.getElementById('reset');
+    const progressBar = document.getElementById('progress-bar');
+    const progressCount = document.getElementById('progress-count');
+    const totalCount = document.getElementById('total-count');
+    const barsWrap = document.getElementById('bars');
+    const topTypeBox = document.getElementById('toptype');
+    const radarSvg = document.getElementById('radar');
+
+    totalCount.textContent = ITEMS.length.toString();
+
+    function renderQuestions() {
+      qList.innerHTML = '';
+      ITEMS.forEach((it, idx) => {
+        const qId = `q${idx}`;
+        const group = document.createElement('div');
+        group.className = 'q';
+        const title = document.createElement('p');
+        title.className = 'qt';
+        title.textContent = `${idx+1}. ${it.text}`;
+        group.appendChild(title);
+
+        const scale = document.createElement('div');
+        scale.className = 'scale';
+
+        // Agree on left (value 5) -> Disagree on right (value 1)
+        [5,4,3,2,1].forEach(v => {
+          const id = `${qId}_${v}`;
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.name = qId;
+          input.value = v;          // scoring unchanged
+          input.id = id;
+          input.required = true;
+
+          const label = document.createElement('label');
+          label.setAttribute('for', id);
+          label.textContent = v;
+
+          const wrap = document.createElement('div');
+          wrap.style.position = 'relative';
+          wrap.appendChild(input);
+          wrap.appendChild(label);
+          scale.appendChild(wrap);
+        });
+
+        // Orientation sublabel
+        const sub = document.createElement('div');
+        sub.className = 'sublabel';
+        sub.innerHTML = 'Agree &larr; &nbsp; &nbsp; Disagree &rarr;';
+
+        group.appendChild(scale);
+        group.appendChild(sub);
+        qList.appendChild(group);
+      });
+    }
+    renderQuestions();
+
+    // Keyboard helper: 1-5 answers focused question (5 = Agree, 1 = Disagree)
+    qList.addEventListener('keydown', (e) => {
+      const n = parseInt(e.key, 10);
+      if (n >= 1 && n <= 5) {
+        const el = document.activeElement;
+        let q = el && el.closest ? el.closest('.q') : null;
+        if (!q) q = qList.querySelector('.q');
+        if (q) {
+          const radios = q.querySelectorAll('input[type="radio"]');
+          const target = Array.from(radios).find(r => +r.value === n);
+          if (target) { target.checked = true; updateProgress(); }
+        }
+      }
+    });
+
+    function getAnswers() {
+      const values = [];
+      ITEMS.forEach((_, idx) => {
+        const groupName = `q${idx}`;
+        const checked = qList.querySelector(`input[name="${groupName}"]:checked`);
+        values.push(checked ? parseInt(checked.value, 10) : null);
+      });
+      return values;
+    }
+
+    function updateProgress() {
+      const answers = getAnswers();
+      const answered = answers.filter(v => v !== null).length;
+      progressCount.textContent = answered.toString();
+      const pct = Math.round(answered / ITEMS.length * 100);
+      progressBar.style.width = pct + '%';
+      submitBtn.disabled = answered !== ITEMS.length;
+    }
+    qList.addEventListener('change', updateProgress);
+    updateProgress();
+
+    resetBtn.addEventListener('click', () => {
+      qList.querySelectorAll('input[type="radio"]:checked').forEach(r => r.checked = false);
+      updateProgress();
+      clearResults();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    // --- Scoring ------------------------------------------------------------
+    function score() {
+      const ans = getAnswers();
+      if (ans.some(v => v === null)) return null;
+
+      // Sum by type; each type has 3 items
+      const sum = new Array(10).fill(0); // 1..9
+      ITEMS.forEach((it, idx) => { sum[it.t] += ans[idx]; });
+      const perTypeMax = 3 * 5; // 3 items * max 5
+      const pct = sum.map((v, i) => i === 0 ? 0 : Math.round((v / perTypeMax) * 100));
+
+      // Ranking
+      const pairs = TYPES.map(t => ({ id: t.id, name: t.name, pct: pct[t.id] }));
+      pairs.sort((a,b) => b.pct - a.pct);
+
+      // Wing heuristic: adjacent types within 85% of top
+      const top = pairs[0];
+      const leftWing  = ((top.id + 7) % 9) + 1; // previous (cyclic)
+      const rightWing = (top.id % 9) + 1;       // next
+      const leftClose  = pct[leftWing]  >= Math.round(top.pct * 0.85);
+      const rightClose = pct[rightWing] >= Math.round(top.pct * 0.85);
+
+      return { pct, ranking: pairs, top, leftWing, rightWing, leftClose, rightClose };
+    }
+
+    // --- Results UI ---------------------------------------------------------
+    function clearResults() {
+      topTypeBox.innerHTML = `
+        <div class="title">No results yet</div>
+        <div class="muted">Fill out the questionnaire and click <strong>See My Results</strong>.</div>
+      `;
+      barsWrap.innerHTML = '';
+      drawRadar(new Array(10).fill(0));
+    }
+
+    function renderBars(pct) {
+      const enriched = TYPES.map(t => ({...t, pct: pct[t.id]}))
+                            .sort((a,b) => b.pct - a.pct);
+      barsWrap.innerHTML = '';
+      enriched.forEach((t, i) => {
+        const row = document.createElement('div');
+        row.className = 'bar';
+        const idx = document.createElement('div'); idx.textContent = t.short; idx.className = 'label';
+        const track = document.createElement('div'); track.className = 'track';
+        const fill = document.createElement('div'); fill.className = 'fill'; fill.style.width = t.pct + '%';
+        track.appendChild(fill);
+        const val = document.createElement('div'); val.className = 'label'; val.textContent = t.pct + '%';
+        row.appendChild(idx); row.appendChild(track); row.appendChild(val);
+        row.title = t.name;
+        barsWrap.appendChild(row);
+      });
+    }
+
+    function renderTopBox(res) {
+      const t = TYPES.find(x => x.id === res.top.id);
+      const wingHints = [];
+      if (res.leftClose)  wingHints.push(`${res.leftWing}`);
+      if (res.rightClose) wingHints.push(`${res.rightWing}`);
+      const wingsText = wingHints.length ? `Likely wing(s): ${wingHints.join(' or ')}` :
+        `Possible wings: ${res.leftWing} or ${res.rightWing}`;
+      topTypeBox.innerHTML = `
+        <div class="title">${t.name} — ${res.top.pct}%</div>
+        <div class="muted">${t.desc}</div>
+        <div class="pair">
+          <span class="pill">${wingsText}</span>
+          <span class="pill">Next highest: ${res.ranking[1].id} (${res.ranking[1].pct}%)</span>
+          <span class="pill">Third: ${res.ranking[2].id} (${res.ranking[2].pct}%)</span>
+        </div>
+      `;
+    }
+
+    submitBtn.addEventListener('click', () => {
+      const res = score();
+      if (!res) return;
+      renderTopBox(res);
+      renderBars(res.pct);
+      drawRadar(res.pct, res.top.id);
+      document.querySelector('.grid').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // --- Radar & Enneagram wiring (custom SVG; no external libs) -----------
+    function polar(cx, cy, r, angleDeg) {
+      const a = (angleDeg - 90) * Math.PI / 180; // 0° at top
+      return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+    }
+
+    function drawRadar(pct, highlightId = null) {
+      const W = 600, H = 600; const cx = W/2, cy = H/2; const R = 240;
+      radarSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      radarSvg.innerHTML = '';
+
+      // Background rings + axes
+      for (let i=1; i<=5; i++) {
+        const r = (R/5) * i;
+        const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        c.setAttribute('cx', cx); c.setAttribute('cy', cy); c.setAttribute('r', r);
+        c.setAttribute('fill', 'none'); c.setAttribute('stroke', i===5 ? '#213055' : '#182344');
+        c.setAttribute('stroke-dasharray', i===5 ? '0' : '2,6');
+        radarSvg.appendChild(c);
+      }
+
+      // Axes + labels (9 points around the circle)
+      TYPES.forEach((t, idx) => {
+        const angle = (idx) * (360 / 9);
+        const [x1, y1] = polar(cx, cy, 0, angle);
+        const [x2, y2] = polar(cx, cy, R, angle);
+        const axis = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        axis.setAttribute('x1', x1); axis.setAttribute('y1', y1);
+        axis.setAttribute('x2', x2); axis.setAttribute('y2', y2);
+        axis.setAttribute('stroke', '#1a2542'); axis.setAttribute('stroke-width', '1');
+        radarSvg.appendChild(axis);
+
+        // label just outside the rim
+        const [lx, ly] = polar(cx, cy, R + 22, angle);
+        const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        label.setAttribute('x', lx); label.setAttribute('y', ly);
+        label.setAttribute('fill', '#cfe1ff');
+        label.setAttribute('font-size', '12');
+        label.setAttribute('text-anchor', 'middle');
+        label.setAttribute('dominant-baseline', 'middle');
+        label.textContent = t.short;
+        radarSvg.appendChild(label);
+      });
+
+      // Enneagram wiring overlay
+      function pathFor(indices, color, width, opacity) {
+        const pts = indices.map(i => {
+          const angle = (i-1) * 40;
+          return polar(cx, cy, R, angle);
+        });
+        const d = pts.map((p, k) => (k === 0 ? `M ${p[0]} ${p[1]}` : `L ${p[0]} ${p[1]}`)).join(' ') + ' Z';
+        const pth = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        pth.setAttribute('d', d);
+        pth.setAttribute('fill', 'none');
+        pth.setAttribute('stroke', color);
+        pth.setAttribute('stroke-width', width);
+        pth.setAttribute('opacity', opacity);
+        radarSvg.appendChild(pth);
+      }
+      pathFor([9,3,6], '#7fb1ff', 1.2, 0.9);            // triangle
+      pathFor([1,4,2,8,5,7], '#8be9c7', 1.2, 0.9);      // hexagram
+
+      // Data polygon (scores)
+      const pts = TYPES.map((t, idx) => {
+        const angle = idx * 40; // degrees, 0..320
+        const r = (pct?.[t.id] || 0) / 100 * R;
+        return polar(cx, cy, r, angle);
+      });
+      if (pts.length) {
+        const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+        poly.setAttribute('points', pts.map(p => p.join(',')).join(' '));
+        poly.setAttribute('fill', 'rgba(139,233,199,0.28)');
+        poly.setAttribute('stroke', '#8be9c7');
+        poly.setAttribute('stroke-width', '2');
+        radarSvg.appendChild(poly);
+      }
+
+      // Highlight highest type node
+      if (highlightId != null) {
+        const angle = (highlightId - 1) * 40;
+        const [hx, hy] = polar(cx, cy, R, angle);
+        const h = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        h.setAttribute('cx', hx); h.setAttribute('cy', hy); h.setAttribute('r', 7.5);
+        h.setAttribute('fill', '#6ea8fe'); h.setAttribute('stroke', '#cfe1ff'); h.setAttribute('stroke-width', '1.5');
+        radarSvg.appendChild(h);
+      }
+    }
+    // initial blank radar
+    drawRadar(new Array(10).fill(0));
+  </script>
+</body>
+</html>
