@@ -21,9 +21,31 @@
       100% { background-position: 50% 50%; }
     }
 
+    /* Checkbox toggle */
+    .toggle-controls {
+      position: fixed;
+      top: 6px;
+      left: 10px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.8);
+      color: #eee;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 20;
+      cursor: pointer;
+      user-select: none;
+      text-shadow: 0 0 4px #000;
+    }
+    .toggle-controls input {
+      margin: 0;
+    }
+
     .controls {
       position: fixed;
-      top: 10px;
+      top: 32px;
       left: 10px;
       padding: 8px 12px;
       background: rgba(0, 0, 0, 0);
@@ -71,7 +93,13 @@
   </style>
 </head>
 <body>
-<div class="controls">
+
+<label class="toggle-controls">
+  <input type="checkbox" id="toggleControls" />
+  Show controls
+</label>
+
+<div class="controls" id="controlsPanel">
   <h2>Box, Speed, Dust</h2>
 
   <div class="group-title">Bounds (half-size)</div>
@@ -147,7 +175,7 @@
   const ATTR_SPRING       = 3.0;
   const ATTR_SWIRL        = 1.5;
 
-  // neighbour repulsion (now forward-only)
+  // neighbour repulsion (forward-only)
   const REPULSION_STRENGTH = 0.09;
   const REPULSION_FLASH    = true;
 
@@ -155,9 +183,9 @@
   const JITTER_STRENGTH   = 0.03;
 
   // wind – field that curves paths (direction-only)
-  const WIND_STRENGTH     = 0.005;
-  const WIND_FREQ         = 0.08;   // spatial frequency
-  const WIND_TIME_SPEED   = 0.05;   // temporal frequency
+  const WIND_STRENGTH     = 0.004;  // reduced influence
+  const WIND_FREQ         = 0.08;
+  const WIND_TIME_SPEED   = 0.35;
 
   // ====== SCENE SETUP ======
   const scene = new THREE.Scene();
@@ -197,6 +225,15 @@
   let attractorDuration = 40.0;
 
   // ====== UI HOOKUP ======
+  const controlsPanel    = document.getElementById('controlsPanel');
+  const toggleControlsEl = document.getElementById('toggleControls');
+
+  function applyToggleState() {
+    controlsPanel.style.display = toggleControlsEl.checked ? 'block' : 'none';
+  }
+  toggleControlsEl.addEventListener('change', applyToggleState);
+  applyToggleState(); // set initial state (hidden because unchecked)
+
   const boxXSlider   = document.getElementById('boxX');
   const boxYSlider   = document.getElementById('boxY');
   const boxZSlider   = document.getElementById('boxZ');
@@ -791,13 +828,11 @@
       const vy = v.y / speed;
       const vz = v.z / speed;
 
-      // smooth field based on position + time
       const phase = time * WIND_TIME_SPEED;
       const wx = Math.sin(p.position.y * WIND_FREQ + phase * 0.9);
       const wy = Math.sin(p.position.z * WIND_FREQ + phase * 1.1);
       const wz = Math.sin(p.position.x * WIND_FREQ + phase * 0.7);
 
-      // perpendicular component to velocity (so we bend, not speed up)
       const dot = wx*vx + wy*vy + wz*vz;
       let px = wx - dot * vx;
       let py = wy - dot * vy;
@@ -813,7 +848,6 @@
       v.y += py * scale;
       v.z += pz * scale;
 
-      // renormalize to original speed → pure direction change
       const newLenSq = v.lengthSq();
       if (newLenSq > 1e-10) {
         const newLen = Math.sqrt(newLenSq);
