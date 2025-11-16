@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gold Dust – Forward Repulsion, Curvy Wind</title>
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 20%, #151521 0%, #050509 35%, #000000 80%);
+      background-size: 140% 140%;
+      animation: bgShift 40s ease-in-out infinite alternate;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    canvas { display: block; }
+
+    @keyframes bgShift {
+      0%   { background-position: 50% 0%; }
+      50%  { background-position: 50% 100%; }
+      100% { background-position: 50% 50%; }
+    }
+
+    .controls {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      padding: 8px 12px;
+      background: rgba(0, 0, 0, 0);
+      color: #eee;
+      font-size: 12px;
+      border-radius: 8px;
+      max-width: 280px;
+      z-index: 10;
+      text-shadow: 0 0 4px #000;
+      pointer-events: auto;
+    }
+    .controls h2 {
+      margin: 0 0 6px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.9;
+    }
+    .controls .group-title {
+      margin-top: 4px;
+      margin-bottom: 2px;
+      font-weight: 600;
+      font-size: 11px;
+      opacity: 0.9;
+    }
+    .row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 4px;
+    }
+    .row label {
+      width: 70px;
+      font-weight: 600;
+    }
+    .row input[type="range"] {
+      flex: 1;
+    }
+    .value {
+      width: 50px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      opacity: 0.85;
+    }
+  </style>
+</head>
+<body>
+<div class="controls">
+  <h2>Box, Speed, Dust</h2>
+
+  <div class="group-title">Bounds (half-size)</div>
+  <div class="row">
+    <label>X max</label>
+    <input id="boxX" type="range" min="10" max="80" value="80" step="1">
+    <span class="value" id="boxXVal">80</span>
+  </div>
+  <div class="row">
+    <label>Y max</label>
+    <input id="boxY" type="range" min="8" max="50" value="50" step="1">
+    <span class="value" id="boxYVal">50</span>
+  </div>
+  <div class="row">
+    <label>Z max</label>
+    <input id="boxZ" type="range" min="10" max="60" value="60" step="1">
+    <span class="value" id="boxZVal">60</span>
+  </div>
+
+  <div class="group-title" style="margin-top:6px;">Speed factor</div>
+  <div class="row">
+    <label>Speed X</label>
+    <input id="speedX" type="range" min="0" max="1.5" value="0.5" step="0.05">
+    <span class="value" id="speedXVal">0.50</span>
+  </div>
+  <div class="row">
+    <label>Speed Y</label>
+    <input id="speedY" type="range" min="0" max="1.5" value="0.5" step="0.05">
+    <span class="value" id="speedYVal">0.50</span>
+  </div>
+  <div class="row">
+    <label>Speed Z</label>
+    <input id="speedZ" type="range" min="0" max="1.5" value="1.5" step="0.05">
+    <span class="value" id="speedZVal">1.50</span>
+  </div>
+
+  <div class="group-title" style="margin-top:6px;">Repulsion</div>
+  <div class="row">
+    <label>Radius</label>
+    <input id="repR" type="range" min="0" max="4" value="4" step="0.1">
+    <span class="value" id="repRVal">4.00</span>
+  </div>
+
+  <div class="group-title" style="margin-top:6px;">Trail</div>
+  <div class="row">
+    <label>Length (s)</label>
+    <input id="trailLen" type="range" min="0.5" max="20" value="6" step="0.1">
+    <span class="value" id="trailLenVal">6.0</span>
+  </div>
+
+  <div class="group-title" style="margin-top:6px;">Attractor</div>
+  <div class="row">
+    <label>Duration</label>
+    <input id="attrDur" type="range" min="5" max="60" value="40" step="1">
+    <span class="value" id="attrDurVal">40s</span>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+  // ====== CONSTANTS ======
+  const PARTICLE_COUNT    = 6000;
+  const TRACK_COUNT       = 12;
+  const TRAIL_MAX_POINTS  = 12000;
+
+  const BOOST_DURATION    = 0.35;
+  const SLOW_DURATION     = 0.7;
+
+  // click attractor field
+  const ATTR_RADIUS       = 25;
+  const ATTR_RADIUS_SQ    = ATTR_RADIUS * ATTR_RADIUS;
+  const ATTR_RING_FACTOR  = 0.4;
+  const ATTR_SPRING       = 3.0;
+  const ATTR_SWIRL        = 1.5;
+
+  // neighbour repulsion (now forward-only)
+  const REPULSION_STRENGTH = 0.09;
+  const REPULSION_FLASH    = true;
+
+  // random soft jitter
+  const JITTER_STRENGTH   = 0.03;
+
+  // wind – field that curves paths (direction-only)
+  const WIND_STRENGTH     = 0.005;
+  const WIND_FREQ         = 0.08;   // spatial frequency
+  const WIND_TIME_SPEED   = 0.05;   // temporal frequency
+
+  // ====== SCENE SETUP ======
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(
+    60,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    500
+  );
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(window.devicePixelRatio || 1);
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  document.body.appendChild(renderer.domElement);
+
+  camera.position.set(0, 0, 120);
+  camera.lookAt(0, 0, 0);
+
+  // Box half-sizes
+  let boxX = 80;
+  let boxY = 50;
+  let boxZ = 60;
+
+  // Speed factors (defaults)
+  let speedX = 0.5;
+  let speedY = 0.5;
+  let speedZ = 1.5;
+
+  // Repulsion radius
+  let repulsionRadius   = 4.0;
+  let repulsionRadiusSq = repulsionRadius * repulsionRadius;
+  let cellSize          = repulsionRadius * 1.5;
+
+  // Trail duration
+  let trailDuration   = 6.0;
+
+  // Attractor duration (seconds)
+  let attractorDuration = 40.0;
+
+  // ====== UI HOOKUP ======
+  const boxXSlider   = document.getElementById('boxX');
+  const boxYSlider   = document.getElementById('boxY');
+  const boxZSlider   = document.getElementById('boxZ');
+  const speedXSlider = document.getElementById('speedX');
+  const speedYSlider = document.getElementById('speedY');
+  const speedZSlider = document.getElementById('speedZ');
+  const repRSlider   = document.getElementById('repR');
+  const trailLenSlider = document.getElementById('trailLen');
+  const attrDurSlider  = document.getElementById('attrDur');
+
+  const boxXVal   = document.getElementById('boxXVal');
+  const boxYVal   = document.getElementById('boxYVal');
+  const boxZVal   = document.getElementById('boxZVal');
+  const speedXVal = document.getElementById('speedXVal');
+  const speedYVal = document.getElementById('speedYVal');
+  const speedZVal = document.getElementById('speedZVal');
+  const repRVal   = document.getElementById('repRVal');
+  const trailLenVal = document.getElementById('trailLenVal');
+  const attrDurVal  = document.getElementById('attrDurVal');
+
+  function updateBoxValues() {
+    boxX = parseFloat(boxXSlider.value);
+    boxY = parseFloat(boxYSlider.value);
+    boxZ = parseFloat(boxZSlider.value);
+    boxXVal.textContent = boxX.toFixed(0);
+    boxYVal.textContent = boxY.toFixed(0);
+    boxZVal.textContent = boxZ.toFixed(0);
+  }
+
+  function updateSpeedValues() {
+    speedX = parseFloat(speedXSlider.value);
+    speedY = parseFloat(speedYSlider.value);
+    speedZ = parseFloat(speedZSlider.value);
+    speedXVal.textContent = speedX.toFixed(2);
+    speedYVal.textContent = speedY.toFixed(2);
+    speedZVal.textContent = speedZ.toFixed(2);
+  }
+
+  function updateRepulsionValues() {
+    repulsionRadius   = parseFloat(repRSlider.value);
+    repulsionRadiusSq = repulsionRadius * repulsionRadius;
+    cellSize          = repulsionRadius * 1.5;
+    repRVal.textContent = repulsionRadius.toFixed(2);
+  }
+
+  function updateTrailValues() {
+    trailDuration = parseFloat(trailLenSlider.value);
+    trailLenVal.textContent = trailDuration.toFixed(1);
+  }
+
+  function updateAttractorDuration() {
+    attractorDuration = parseFloat(attrDurSlider.value);
+    attrDurVal.textContent = attractorDuration.toFixed(0) + 's';
+  }
+
+  boxXSlider.addEventListener('input', updateBoxValues);
+  boxYSlider.addEventListener('input', updateBoxValues);
+  boxZSlider.addEventListener('input', updateBoxValues);
+  speedXSlider.addEventListener('input', updateSpeedValues);
+  speedYSlider.addEventListener('input', updateSpeedValues);
+  speedZSlider.addEventListener('input', updateSpeedValues);
+  repRSlider.addEventListener('input', updateRepulsionValues);
+  trailLenSlider.addEventListener('input', updateTrailValues);
+  attrDurSlider.addEventListener('input', updateAttractorDuration);
+
+  updateBoxValues();
+  updateSpeedValues();
+  updateRepulsionValues();
+  updateTrailValues();
+  updateAttractorDuration();
+
+  // ====== PARTICLES ======
+  const geometry  = new THREE.BufferGeometry();
+  const positions = new Float32Array(PARTICLE_COUNT * 3);
+  const colors    = new Float32Array(PARTICLE_COUNT * 3);
+  const sizes     = new Float32Array(PARTICLE_COUNT);
+  const flash     = new Float32Array(PARTICLE_COUNT);
+
+  const particles = [];
+  let spatialHash = new Map();
+
+  class Particle {
+    constructor(index) {
+      this.index = index;
+      this.position = new THREE.Vector3(
+        (Math.random() * 2 - 1) * boxX * 0.8,
+        (Math.random() * 2 - 1) * boxY * 0.8,
+        (Math.random() * 2 - 1) * boxZ * 0.8
+      );
+      this.velocity = new THREE.Vector3(
+        (Math.random() - 0.5) * 0.15,
+        (Math.random() - 0.5) * 0.15,
+        (Math.random() - 0.5) * 0.15
+      );
+      this.boostTimer = 0.0;
+      this.slowTimer  = 0.0;
+    }
+
+    bumpSpeedPhase() {
+      this.boostTimer = BOOST_DURATION;
+      this.slowTimer  = SLOW_DURATION;
+    }
+
+    bounceAtWalls() {
+      const jitter = 0.15;
+
+      if (this.position.x > boxX) {
+        this.position.x = boxX;
+        if (this.velocity.x > 0) this.velocity.x = -this.velocity.x;
+        this.velocity.y += (Math.random() - 0.5) * jitter;
+        this.velocity.z += (Math.random() - 0.5) * jitter;
+      } else if (this.position.x < -boxX) {
+        this.position.x = -boxX;
+        if (this.velocity.x < 0) this.velocity.x = -this.velocity.x;
+        this.velocity.y += (Math.random() - 0.5) * jitter;
+        this.velocity.z += (Math.random() - 0.5) * jitter;
+      }
+
+      if (this.position.y > boxY) {
+        this.position.y = boxY;
+        if (this.velocity.y > 0) this.velocity.y = -this.velocity.y;
+        this.velocity.x += (Math.random() - 0.5) * jitter;
+        this.velocity.z += (Math.random() - 0.5) * jitter;
+      } else if (this.position.y < -boxY) {
+        this.position.y = -boxY;
+        if (this.velocity.y < 0) this.velocity.y = -this.velocity.y;
+        this.velocity.x += (Math.random() - 0.5) * jitter;
+        this.velocity.z += (Math.random() - 0.5) * jitter;
+      }
+
+      if (this.position.z > boxZ) {
+        this.position.z = boxZ;
+        if (this.velocity.z > 0) this.velocity.z = -this.velocity.z;
+        this.velocity.x += (Math.random() - 0.5) * jitter;
+        this.velocity.y += (Math.random() - 0.5) * jitter;
+      } else if (this.position.z < -boxZ) {
+        this.position.z = -boxZ;
+        if (this.velocity.z < 0) this.velocity.z = -this.velocity.z;
+        this.velocity.x += (Math.random() - 0.5) * jitter;
+        this.velocity.y += (Math.random() - 0.5) * jitter;
+      }
+    }
+
+    integrate(dt) {
+      // soft jitter
+      this.velocity.x += (Math.random() - 0.5) * JITTER_STRENGTH * dt;
+      this.velocity.y += (Math.random() - 0.5) * JITTER_STRENGTH * dt;
+      this.velocity.z += (Math.random() - 0.5) * JITTER_STRENGTH * dt;
+
+      let moveFactor = 1.0;
+      if (this.boostTimer > 0) {
+        moveFactor = 1.6;
+        this.boostTimer -= dt;
+        if (this.boostTimer < 0) this.boostTimer = 0;
+      } else if (this.slowTimer > 0) {
+        moveFactor = 0.6;
+        this.slowTimer -= dt;
+        if (this.slowTimer < 0) this.slowTimer = 0;
+      }
+
+      // enforce min+max speed so they never freeze
+      const maxSpeed = 0.14;
+      const minSpeed = 0.018;
+      let speedSq = this.velocity.lengthSq();
+      if (speedSq > 0) {
+        let speed = Math.sqrt(speedSq);
+        if (speed > maxSpeed) {
+          this.velocity.multiplyScalar(maxSpeed / speed);
+        } else if (speed < minSpeed) {
+          this.velocity.multiplyScalar(minSpeed / speed);
+        }
+      }
+
+      const step = dt * 60 * moveFactor;
+      this.position.x += this.velocity.x * step * speedX;
+      this.position.y += this.velocity.y * step * speedY;
+      this.position.z += this.velocity.z * step * speedZ;
+
+      this.bounceAtWalls();
+
+      flash[this.index] *= Math.exp(-dt * 4.0);
+
+      const i3 = this.index * 3;
+      positions[i3]     = this.position.x;
+      positions[i3 + 1] = this.position.y;
+      positions[i3 + 2] = this.position.z;
+    }
+  }
+
+  for (let i = 0; i < PARTICLE_COUNT; i++) {
+    const p = new Particle(i);
+    particles.push(p);
+
+    const i3 = i * 3;
+    positions[i3]     = p.position.x;
+    positions[i3 + 1] = p.position.y;
+    positions[i3 + 2] = p.position.z;
+
+    const v = 0.9 + Math.random() * 0.1;
+    colors[i3]     = 1.0 * v;
+    colors[i3 + 1] = 0.84 * v;
+    colors[i3 + 2] = 0.2 * v;
+
+    sizes[i] = 0.8 + Math.random() * 1.8;
+    flash[i] = 0.0;
+  }
+
+  geometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+  geometry.setAttribute("color",    new THREE.BufferAttribute(colors, 3));
+  geometry.setAttribute("size",     new THREE.BufferAttribute(sizes, 1));
+  geometry.setAttribute("flash",    new THREE.BufferAttribute(flash, 1));
+
+  // ====== MAIN SHADER ======
+  const material = new THREE.ShaderMaterial({
+    uniforms: { time: { value: 0.0 } },
+    vertexShader: `
+      attribute float size;
+      attribute vec3 color;
+      attribute float flash;
+      varying vec3 vColor;
+      varying float vFlash;
+      uniform float time;
+
+      void main() {
+        vColor = color;
+        vFlash = flash;
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+
+        float shimmer = 0.85 + 0.15 * sin(
+          time * 1.8 + position.x * 0.18 + position.y * 0.16 + position.z * 0.12
+        );
+        gl_PointSize = size * shimmer * (300.0 / -mvPosition.z);
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vColor;
+      varying float vFlash;
+      void main() {
+        vec2 c = gl_PointCoord - vec2(0.5);
+        float d = length(c);
+        if (d > 0.5) discard;
+
+        float edge = smoothstep(0.5, 0.0, d);
+        float alpha = 0.20 + 0.80 * edge;
+
+        vec3 base = vColor;
+        base = mix(base, vec3(1.0, 1.0, 1.0), clamp(vFlash, 0.0, 1.0));
+
+        gl_FragColor = vec4(base, alpha * edge);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+
+  const points = new THREE.Points(geometry, material);
+  scene.add(points);
+
+  // ====== TRAILS (with special pastel trajectory) ======
+  const trailGeometry = new THREE.BufferGeometry();
+  const trailPositions = new Float32Array(TRAIL_MAX_POINTS * 3);
+  const trailAlpha     = new Float32Array(TRAIL_MAX_POINTS);
+  const trailSpecial   = new Float32Array(TRAIL_MAX_POINTS);
+
+  trailGeometry.setAttribute(
+    "position",
+    new THREE.BufferAttribute(trailPositions, 3)
+  );
+  trailGeometry.setAttribute(
+    "alpha",
+    new THREE.BufferAttribute(trailAlpha, 1)
+  );
+  trailGeometry.setAttribute(
+    "special",
+    new THREE.BufferAttribute(trailSpecial, 1)
+  );
+
+  const trailMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0.0 },
+      size: { value: 3.0 }
+    },
+    vertexShader: `
+      attribute float alpha;
+      attribute float special;
+      varying float vAlpha;
+      varying float vSpecial;
+      uniform float size;
+
+      void main() {
+        vAlpha = alpha;
+        vSpecial = special;
+        vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+        gl_PointSize = size * (300.0 / -mvPosition.z);
+        gl_Position = projectionMatrix * mvPosition;
+      }
+    `,
+    fragmentShader: `
+      varying float vAlpha;
+      varying float vSpecial;
+      void main() {
+        vec2 c = gl_PointCoord - vec2(0.5);
+        float d = length(c);
+        if (d > 0.5) discard;
+
+        float edge = smoothstep(0.5, 0.0, d);
+        float alpha = vAlpha * edge;
+
+        vec3 gold   = vec3(1.0, 0.9, 0.3);
+        vec3 pastel = vec3(0.78, 0.86, 1.0);
+        vec3 color = mix(gold, pastel, clamp(vSpecial, 0.0, 1.0));
+
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false
+  });
+
+  const trailPointsObj = new THREE.Points(trailGeometry, trailMaterial);
+  scene.add(trailPointsObj);
+
+  let trackers = [];
+  let trackedIndexSet = new Set();
+  let specialTrackedIndex = null;
+
+  function reassignTracker(tracker) {
+    if (tracker.particleIndex != null) {
+      trackedIndexSet.delete(tracker.particleIndex);
+    }
+    let idx;
+    let guard = 0;
+    do {
+      idx = Math.floor(Math.random() * PARTICLE_COUNT);
+      guard++;
+      if (guard > PARTICLE_COUNT * 2) break;
+    } while (trackedIndexSet.has(idx));
+    tracker.particleIndex = idx;
+    tracker.timeSinceSelect = 0;
+    tracker.points = [];
+    trackedIndexSet.add(idx);
+  }
+
+  function initTrackers() {
+    trackers = [];
+    trackedIndexSet.clear();
+    for (let k = 0; k < TRACK_COUNT; k++) {
+      const t = { particleIndex: null, timeSinceSelect: 0, points: [] };
+      reassignTracker(t);
+      trackers.push(t);
+    }
+    specialTrackedIndex = trackers[0].particleIndex;
+  }
+
+  initTrackers();
+
+  function updateTrail(dt) {
+    let cursor = 0;
+
+    for (let ti = 0; ti < trackers.length; ti++) {
+      const t = trackers[ti];
+      t.timeSinceSelect += dt;
+
+      if (
+        t.particleIndex == null ||
+        t.particleIndex < 0 ||
+        t.particleIndex >= PARTICLE_COUNT ||
+        t.timeSinceSelect > trailDuration * 1.2
+      ) {
+        reassignTracker(t);
+        if (ti === 0) {
+          specialTrackedIndex = t.particleIndex;
+        }
+      }
+
+      const p = particles[t.particleIndex];
+      if (p) {
+        t.points.push({ pos: p.position.clone(), age: 0 });
+      }
+
+      for (let i = t.points.length - 1; i >= 0; i--) {
+        t.points[i].age += dt;
+        if (t.points[i].age > trailDuration) {
+          t.points.splice(i, 1);
+        }
+      }
+    }
+
+    if (trackers.length > 0 && trackers[0].particleIndex != null) {
+      specialTrackedIndex = trackers[0].particleIndex;
+    }
+
+    for (let ti = 0; ti < trackers.length; ti++) {
+      const t = trackers[ti];
+      const isSpecialTracker = (ti === 0);
+
+      for (let i = 0; i < t.points.length; i++) {
+        if (cursor >= TRAIL_MAX_POINTS) break;
+        const tp = t.points[i];
+        const i3 = cursor * 3;
+
+        trailPositions[i3]     = tp.pos.x;
+        trailPositions[i3 + 1] = tp.pos.y;
+        trailPositions[i3 + 2] = tp.pos.z;
+
+        const life = 1.0 - (tp.age / trailDuration);
+        trailAlpha[cursor]   = life;
+        trailSpecial[cursor] = isSpecialTracker ? 1.0 : 0.0;
+
+        cursor++;
+      }
+      if (cursor >= TRAIL_MAX_POINTS) break;
+    }
+
+    trailGeometry.setDrawRange(0, cursor);
+    trailGeometry.attributes.position.needsUpdate = true;
+    trailGeometry.attributes.alpha.needsUpdate    = true;
+    trailGeometry.attributes.special.needsUpdate  = true;
+  }
+
+  // ====== CLICK ATTRACTORS: 3D BALL / DOUGHNUT ======
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  const attractors = []; // { center: Vector3, age: number, swirlSign: +1/-1, axis: Vector3 }
+
+  window.addEventListener("click", (event) => {
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const ray = raycaster.ray;
+
+    const t = (0 - ray.origin.z) / ray.direction.z;
+    const center = ray.origin.clone().add(ray.direction.clone().multiplyScalar(t));
+
+    const swirlSign = Math.random() < 0.5 ? 1 : -1;
+    const axis = new THREE.Vector3(
+      Math.random() * 2 - 1,
+      Math.random() * 2 - 1,
+      Math.random() * 2 - 1
+    );
+    if (axis.lengthSq() < 1e-4) axis.set(0, 1, 0);
+    axis.normalize();
+
+    attractors.push({ center, age: 0, swirlSign, axis });
+  });
+
+  function applyAttractorsAll(dt) {
+    if (!attractors.length) return;
+
+    const springScale = ATTR_SPRING * dt * 60.0;
+    const swirlScale  = ATTR_SWIRL  * dt * 60.0;
+    const ringRadius  = ATTR_RADIUS * ATTR_RING_FACTOR;
+
+    const dir     = new THREE.Vector3();
+    const tangent = new THREE.Vector3();
+    const altAxis = new THREE.Vector3(0, 1, 0);
+
+    for (const p of particles) {
+      for (const a of attractors) {
+        if (a.age > attractorDuration) continue;
+
+        dir.subVectors(a.center, p.position);
+        const distSq = dir.lengthSq();
+        if (distSq <= 1e-6 || distSq > ATTR_RADIUS_SQ) continue;
+
+        const dist = Math.sqrt(distSq);
+        dir.multiplyScalar(1.0 / dist);
+
+        const radialError = dist - ringRadius;
+        const falloff = 1.0 - Math.min(Math.abs(radialError) / ATTR_RADIUS, 1.0);
+
+        const radialAccel = -springScale * radialError / ATTR_RADIUS;
+        p.velocity.x += dir.x * radialAccel;
+        p.velocity.y += dir.y * radialAccel;
+        p.velocity.z += dir.z * radialAccel;
+
+        tangent.crossVectors(dir, a.axis);
+        if (tangent.lengthSq() < 1e-4) {
+          tangent.crossVectors(dir, altAxis);
+        }
+        const tLenSq = tangent.lengthSq();
+        if (tLenSq > 1e-6) {
+          tangent.multiplyScalar(1.0 / Math.sqrt(tLenSq));
+          const swirl = swirlScale * (0.3 + 0.7 * falloff) * a.swirlSign;
+          p.velocity.x += tangent.x * swirl;
+          p.velocity.y += tangent.y * swirl;
+          p.velocity.z += tangent.z * swirl;
+        }
+      }
+    }
+  }
+
+  // ====== LOCAL REPULSION: forward-only ======
+  function hashKey(ix, iy, iz) {
+    return ix + ',' + iy + ',' + iz;
+  }
+
+  function buildSpatialHash() {
+    spatialHash.clear();
+    if (repulsionRadius <= 0) return;
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      const p = particles[i];
+      const ix = Math.floor(p.position.x / cellSize);
+      const iy = Math.floor(p.position.y / cellSize);
+      const iz = Math.floor(p.position.z / cellSize);
+      const key = hashKey(ix, iy, iz);
+      let bucket = spatialHash.get(key);
+      if (!bucket) {
+        bucket = [];
+        spatialHash.set(key, bucket);
+      }
+      bucket.push(i);
+    }
+  }
+
+  function applyNeighbourRepulsionAll(dt) {
+    if (repulsionRadius <= 0 || spatialHash.size === 0) return;
+    const base = REPULSION_STRENGTH * dt * 60.0;
+
+    for (const bucket of spatialHash.values()) {
+      const len = bucket.length;
+      if (len <= 1) continue;
+
+      for (let a = 0; a < len; a++) {
+        const i = bucket[a];
+        const p = particles[i];
+        for (let b = a + 1; b < len; b++) {
+          const j = bucket[b];
+          const q = particles[j];
+
+          const dx = q.position.x - p.position.x;
+          const dy = q.position.y - p.position.y;
+          const dz = q.position.z - p.position.z;
+          const distSq = dx*dx + dy*dy + dz*dz;
+          if (distSq > 0 && distSq < repulsionRadiusSq) {
+            const dist = Math.sqrt(distSq);
+            const falloff = 1.0 - dist / repulsionRadius;
+            const impulse = base * falloff;
+
+            // accelerate p along its current direction
+            let vpx = p.velocity.x;
+            let vpy = p.velocity.y;
+            let vpz = p.velocity.z;
+            let vplenSq = vpx*vpx + vpy*vpy + vpz*vpz;
+            if (vplenSq > 1e-10) {
+              const invVp = 1.0 / Math.sqrt(vplenSq);
+              p.velocity.x += vpx * invVp * impulse;
+              p.velocity.y += vpy * invVp * impulse;
+              p.velocity.z += vpz * invVp * impulse;
+            }
+
+            // accelerate q along its current direction
+            let vqx = q.velocity.x;
+            let vqy = q.velocity.y;
+            let vqz = q.velocity.z;
+            let vqlenSq = vqx*vqx + vqy*vqy + vqz*vqz;
+            if (vqlenSq > 1e-10) {
+              const invVq = 1.0 / Math.sqrt(vqlenSq);
+              q.velocity.x += vqx * invVq * impulse;
+              q.velocity.y += vqy * invVq * impulse;
+              q.velocity.z += vqz * invVq * impulse;
+            }
+
+            if (REPULSION_FLASH) {
+              p.bumpSpeedPhase();
+              q.bumpSpeedPhase();
+              flash[i] = 1.0;
+              flash[j] = 1.0;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ====== WIND FIELD (direction-only bending) ======
+  function applyWindAll(dt, time) {
+    const scale = WIND_STRENGTH * dt * 60.0;
+    if (scale <= 0) return;
+
+    for (const p of particles) {
+      const v = p.velocity;
+      const speedSq = v.lengthSq();
+      if (speedSq <= 1e-10) continue;
+
+      const speed = Math.sqrt(speedSq);
+      const vx = v.x / speed;
+      const vy = v.y / speed;
+      const vz = v.z / speed;
+
+      // smooth field based on position + time
+      const phase = time * WIND_TIME_SPEED;
+      const wx = Math.sin(p.position.y * WIND_FREQ + phase * 0.9);
+      const wy = Math.sin(p.position.z * WIND_FREQ + phase * 1.1);
+      const wz = Math.sin(p.position.x * WIND_FREQ + phase * 0.7);
+
+      // perpendicular component to velocity (so we bend, not speed up)
+      const dot = wx*vx + wy*vy + wz*vz;
+      let px = wx - dot * vx;
+      let py = wy - dot * vy;
+      let pz = wz - dot * vz;
+
+      const plenSq = px*px + py*py + pz*pz;
+      if (plenSq <= 1e-10) continue;
+
+      const invPl = 1.0 / Math.sqrt(plenSq);
+      px *= invPl; py *= invPl; pz *= invPl;
+
+      v.x += px * scale;
+      v.y += py * scale;
+      v.z += pz * scale;
+
+      // renormalize to original speed → pure direction change
+      const newLenSq = v.lengthSq();
+      if (newLenSq > 1e-10) {
+        const newLen = Math.sqrt(newLenSq);
+        const k = speed / newLen;
+        v.multiplyScalar(k);
+      }
+    }
+  }
+
+  // ====== LOOP ======
+  const clock = new THREE.Clock();
+
+  function animate() {
+    requestAnimationFrame(animate);
+    const dt   = clock.getDelta();
+    const time = clock.elapsedTime;
+
+    for (let i = attractors.length - 1; i >= 0; i--) {
+      attractors[i].age += dt;
+      if (attractors[i].age > attractorDuration) {
+        attractors.splice(i, 1);
+      }
+    }
+
+    buildSpatialHash();
+    applyNeighbourRepulsionAll(dt);
+    applyAttractorsAll(dt);
+    applyWindAll(dt, time);
+
+    for (const p of particles) {
+      p.integrate(dt);
+    }
+
+    updateTrail(dt);
+
+    geometry.attributes.position.needsUpdate = true;
+    geometry.attributes.flash.needsUpdate    = true;
+    material.uniforms.time.value = time;
+    trailMaterial.uniforms.time.value = time;
+
+    camera.lookAt(0, 0, 0);
+    renderer.render(scene, camera);
+  }
+
+  window.addEventListener("resize", () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+
+  animate();
+</script>
+</body>
+</html>
