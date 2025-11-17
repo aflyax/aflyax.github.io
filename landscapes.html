@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Free-Floating Strings → Donut</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: #02030a;
+    }
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      cursor: crosshair;
+      background: #02030a;
+    }
+  </style>
+</head>
+<body>
+<canvas id="field"></canvas>
+
+<script>
+const canvas = document.getElementById("field");
+const ctx = canvas.getContext("2d");
+
+let W = window.innerWidth;
+let H = window.innerHeight;
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); // 1 canvas unit = 1 CSS pixel
+}
+window.addEventListener("resize", resize);
+resize();
+
+// ---------- parameters ----------
+const LINES = 80;
+const STEPS = 200;
+const TAU = Math.PI * 2;
+const LINE_COLOR = "#b4ffd9";   // bright light-green
+
+let donutCx = W / 2;
+let donutCy = H / 2;
+
+// morph factor: 0 = floating, 1 = donut
+let morph = 0;
+let targetMorph = 0;
+
+let lastClickTime = performance.now();
+let lastTime = performance.now();
+
+// donut stays twice as long now
+const HOLD_TIME   = 4400;  // ms donut stays before falling apart
+const RATE_IN     = 3.0;   // how fast we morph into donut
+const RATE_OUT    = 1.2;   // how gently we fall apart back to floating
+
+const rand  = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : (v > b ? b : v);
+
+// ---------- simple 3D projection ----------
+function project3D(x, y, z) {
+  const yaw   = 0.8;
+  const pitch = -0.9;
+
+  const cosY = Math.cos(yaw), sinY = Math.sin(yaw);
+  let x1 = x * cosY - z * sinY;
+  let z1 = x * sinY + z * cosY;
+  let y1 = y;
+
+  const cosP = Math.cos(pitch), sinP = Math.sin(pitch);
+  let y2 = y1 * cosP - z1 * sinP;
+  // let z2 = y1 * sinP + z1 * cosP;
+
+  return [x1, y2];
+}
+
+// ---------- line metadata: free-floating 3D strings ----------
+const lineMeta = [];
+(function initLines() {
+  for (let i = 0; i < LINES; i++) {
+    const driftRadius = rand(0.8, 1.8);
+    lineMeta.push({
+      baseX: rand(-0.5, 0.5),
+      baseY: rand(-0.5, 0.5),
+      baseZ: rand(-0.5, 0.5),
+
+      driftAxX: rand(0.3, 1.0) * driftRadius,
+      driftBxX: rand(0.1, 0.7) * driftRadius,
+      driftAxY: rand(0.3, 1.0) * driftRadius,
+      driftBxY: rand(0.1, 0.7) * driftRadius,
+      driftAxZ: rand(0.3, 1.0) * driftRadius,
+      driftBxZ: rand(0.1, 0.7) * driftRadius,
+
+      driftFx1: rand(0.15, 0.35),
+      driftFx2: rand(0.07, 0.18),
+      driftFy1: rand(0.15, 0.35),
+      driftFy2: rand(0.07, 0.18),
+      driftFz1: rand(0.15, 0.35),
+      driftFz2: rand(0.07, 0.18),
+
+      phaseX1: rand(0, TAU),
+      phaseX2: rand(0, TAU),
+      phaseY1: rand(0, TAU),
+      phaseY2: rand(0, TAU),
+      phaseZ1: rand(0, TAU),
+      phaseZ2: rand(0, TAU),
+
+      dir: (function() {
+        let dx = rand(-1, 1);
+        let dy = rand(-1, 1);
+        let dz = rand(-1, 1);
+        const len = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1;
+        return { dx: dx/len, dy: dy/len, dz: dz/len };
+      })(),
+
+      length:  rand(1.8, 3.2),
+
+      waveAmpY: rand(0.2, 0.7),
+      waveAmpZ: rand(0.2, 0.7),
+      freqY:    rand(1.0, 2.2),
+      freqZ:    rand(1.2, 2.5),
+      jitter1:  rand(0, TAU),
+      jitter2:  rand(0, TAU)
+    });
+  }
+})();
+
+// ---------- floating 3D string position ----------
+function floatPos(lineIdx, stepIdx, t) {
+  const m = lineMeta[lineIdx];
+  const u = stepIdx / STEPS - 0.5;   // -0.5 .. 0.5
+  const w = u + 0.5;                 // 0 .. 1
+
+  const cx3 =
+    m.baseX +
+    m.driftAxX * Math.sin(t * m.driftFx1 + m.phaseX1) +
+    m.driftBxX * Math.sin(t * m.driftFx2 + m.phaseX2);
+
+  const cy3 =
+    m.baseY +
+    m.driftAxY * Math.sin(t * m.driftFy1 + m.phaseY1) +
+    m.driftBxY * Math.sin(t * m.driftFy2 + m.phaseY2);
+
+  const cz3 =
+    m.baseZ +
+    m.driftAxZ * Math.sin(t * m.driftFz1 + m.phaseZ1) +
+    m.driftBxZ * Math.sin(t * m.driftFz2 + m.phaseZ2);
+
+  let x = cx3 + m.dir.dx * u * m.length;
+  let y = cy3 + m.dir.dy * u * m.length;
+  let z = cz3 + m.dir.dz * u * m.length;
+
+  x += 0.15 * Math.sin(w * TAU * 1.5 + t * 0.9 + lineIdx * 0.3);
+  y += m.waveAmpY * Math.sin(w * TAU * m.freqY + t * 1.2 + m.jitter1);
+  z += m.waveAmpZ * Math.sin(w * TAU * m.freqZ + t * 1.0 + m.jitter2);
+
+  const [px, py] = project3D(x, y, z);
+
+  const scale = Math.min(W, H) * 0.22;
+  let sx = W / 2 + px * scale;
+  let sy = H / 2 + py * scale;
+
+  const vib = 1.3;
+  sx += Math.sin(t * 4.0 + w * 19.0 + lineIdx) * vib * 0.5;
+  sy += Math.cos(t * 3.5 + w * 15.0 + lineIdx * 1.5) * vib * 0.5;
+
+  return [sx, sy];
+}
+
+// ---------- donut torus strings ----------
+function donutPos(lineIdx, stepIdx, t) {
+  const u = (stepIdx / STEPS) * TAU;
+  const li = lineIdx / (LINES - 1);
+  const v0 = li * TAU;
+
+  const R = 1.7;
+  const r = 1.0;
+
+  const amp   = 0.45;
+  const freq  = 2.0;
+  const phase = lineMeta[lineIdx].jitter1;
+
+  const v = v0 + amp * Math.sin(freq * u + phase + t * 0.8);
+
+  const cosV = Math.cos(v), sinV = Math.sin(v);
+  const cosU = Math.cos(u), sinU = Math.sin(u);
+
+  let x = (R + r * cosV) * cosU;
+  let y = (R + r * cosV) * sinU;
+  let z = r * sinV;
+
+  const breathe = 1 + 0.05 * Math.sin(t * 0.7 + li * 4.0);
+  x *= breathe;
+  y *= breathe;
+  z *= breathe;
+
+  const [px, py] = project3D(x, y, z);
+  const scale = Math.min(W, H) * 0.18;
+
+  let sx = donutCx + px * scale;
+  let sy = donutCy + py * scale;
+
+  const vib = 1.7;
+  const w = stepIdx / STEPS;
+  sx += Math.sin(t * 5.0 + w * 20.0 + lineIdx) * vib;
+  sy += Math.cos(t * 4.2 + w * 16.0 + lineIdx * 1.8) * vib;
+
+  return [sx, sy];
+}
+
+// ---------- main render loop ----------
+function render(now) {
+  const dt = (now - lastTime) / 1000;
+  lastTime = now;
+  const t = now * 0.001;
+
+  // stay donut for HOLD_TIME, then gently fall apart
+  if (targetMorph === 1 && now - lastClickTime > HOLD_TIME) {
+    targetMorph = 0;
+  }
+
+  // different speeds for in and out
+  const rate = (targetMorph > morph) ? RATE_IN : RATE_OUT;
+  const k = Math.exp(-rate * dt);
+  morph = morph * k + targetMorph * (1 - k);
+  morph = clamp(morph, 0, 1);
+
+  ctx.fillStyle = "#02030a";
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.globalCompositeOperation = "lighter";
+  ctx.strokeStyle = LINE_COLOR;
+
+  for (let i = 0; i < LINES; i++) {
+    const alpha = 0.12 + 0.45 * (i / (LINES - 1));
+    ctx.globalAlpha = alpha;
+
+    ctx.beginPath();
+    for (let s = 0; s <= STEPS; s++) {
+      const [fx, fy] = floatPos(i, s, t);
+      const [dx, dy] = donutPos(i, s, t);
+      const x = fx + (dx - fx) * morph;
+      const y = fy + (dy - fy) * morph;
+
+      if (s === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation = "source-over";
+
+  requestAnimationFrame(render);
+}
+
+lastTime = performance.now();
+requestAnimationFrame(render);
+
+// ---------- click => coalesce into donut ----------
+canvas.addEventListener("click", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  donutCx = e.clientX - rect.left;
+  donutCy = e.clientY - rect.top;
+
+  lastClickTime = performance.now();
+  targetMorph = 1;  // warp into donut, then gently fall apart
+});
+</script>
+</body>
+</html>
