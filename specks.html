@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gold Dust – Sphere, Wind, Repulsion</title>
+  <title>Gold Dust – Torus, Wind, Repulsion</title>
   <style>
     body {
       margin: 0;
@@ -101,23 +101,23 @@
 </label>
 
 <div class="controls" id="controlsPanel">
-  <h2>Box, Speed, Sphere</h2>
+  <h2>Box, Speed, Torus</h2>
 
   <div class="group-title">Bounds (half-size)</div>
   <div class="row">
     <label>X max</label>
-    <input id="boxX" type="range" min="20" max="100" value="80" step="1">
-    <span class="value" id="boxXVal">80</span>
+    <input id="boxX" type="range" min="20" max="100" value="100" step="1">
+    <span class="value" id="boxXVal">100</span>
   </div>
   <div class="row">
     <label>Y max</label>
-    <input id="boxY" type="range" min="15" max="70" value="50" step="1">
-    <span class="value" id="boxYVal">50</span>
+    <input id="boxY" type="range" min="15" max="70" value="70" step="1">
+    <span class="value" id="boxYVal">70</span>
   </div>
   <div class="row">
     <label>Z max</label>
-    <input id="boxZ" type="range" min="20" max="80" value="60" step="1">
-    <span class="value" id="boxZVal">60</span>
+    <input id="boxZ" type="range" min="20" max="80" value="80" step="1">
+    <span class="value" id="boxZVal">80</span>
   </div>
 
   <div class="group-title">Speed factor</div>
@@ -137,9 +137,9 @@
     <span class="value" id="speedZVal">1.50</span>
   </div>
 
-  <div class="group-title">Sphere attractor</div>
+  <div class="group-title">Torus attractor</div>
   <div class="row">
-    <label>Radius</label>
+    <label>Major R</label>
     <input id="shellR" type="range" min="8" max="40" value="20" step="1">
     <span class="value" id="shellRVal">20</span>
   </div>
@@ -153,12 +153,12 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
   // ===== CONFIG (slider-controlled) =====
-  let BOX_X = 80;
-  let BOX_Y = 50;
-  let BOX_Z = 60;
+  let BOX_X = 100;
+  let BOX_Y = 70;
+  let BOX_Z = 80;
 
-  let SHELL_RADIUS  = 20;
-  let ATTR_LIFETIME = 18.0;   // shorter default sphere lifetime
+  let SHELL_RADIUS  = 20;   // torus major radius
+  let ATTR_LIFETIME = 18.0; // seconds
 
   // faster defaults in X/Y
   let speedFactorX = 1.0;
@@ -169,13 +169,13 @@
   const ATTR_RANGE       = 40;
   const ATTR_RANGE_SQ    = ATTR_RANGE * ATTR_RANGE;
 
-  // spherical-shell forces
-  const SPRING_K         = 10.0;
-  const RADIAL_DAMP      = 4.0;
-  const TANGENTIAL_FORCE = 8.0;
+  // torus shape
+  const TORUS_MINOR_RATIO = 0.4;  // tube radius = ratio * major R
+  const TORUS_K_SURFACE   = 8.0;  // spring to surface
+  const TANGENTIAL_FORCE  = 6.0;  // swirl strength
 
-  // one-shot snap
-  const SNAP_POS_FACTOR  = 0.7;
+  // one-shot snap lerp
+  const SNAP_POS_FACTOR  = 0.6;
   const SNAP_SWIRL       = 10.0;
 
   // base motion (gentle dust)
@@ -195,6 +195,19 @@
   const FLASH_DECAY         = 4.0;
   const CELL_SIZE           = REPULSION_RADIUS * 1.5;
   let spatialHash = new Map();
+
+  // torus axis: tilted so we get obvious 3D donuts
+  const TORUS_AXIS = new THREE.Vector3(0.3, 1.0, 0.4).normalize();
+
+  // orthonormal basis for torus coordinates (U, V in plane, AXIS normal)
+  const TORUS_U = new THREE.Vector3();
+  const TORUS_V = new THREE.Vector3();
+  (function buildBasis() {
+    const tmp = new THREE.Vector3(0, 1, 0);
+    if (Math.abs(TORUS_AXIS.dot(tmp)) > 0.9) tmp.set(1, 0, 0);
+    TORUS_U.crossVectors(TORUS_AXIS, tmp).normalize();
+    TORUS_V.crossVectors(TORUS_AXIS, TORUS_U).normalize();
+  })();
 
   // ===== UI HOOKUP =====
   const controlsPanel    = document.getElementById('controlsPanel');
@@ -353,7 +366,6 @@
         float d = sqrt(r2);
         float alphaCore = 1.0 - smoothstep(0.0, 0.5, d);
 
-        // Brighter gold + white flash
         vec3 col = vColor * 1.7;
         float f = clamp(vFlash, 0.0, 1.0);
         col = mix(col, vec3(1.0, 1.0, 1.0), f);
@@ -371,51 +383,51 @@
   const points = new THREE.Points(geometry, material);
   scene.add(points);
 
-  // ===== ATTRACTORS (spherical shell) =====
+  // ===== ATTRACTORS (TORUS) =====
   const attractors = []; // { center: Vector3, age: number, life: number }
 
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
-  function makePerpendicularUnit(vec, out) {
-    out.set(-vec.y, vec.x, 0.0);
-    if (out.lengthSq() < 1e-4) {
-      out.set(0.0, -vec.z, vec.y);
-    }
-    out.normalize();
-  }
-
+  // Snap nearby particles toward random points on torus surface
   function createAttractor(center) {
     const a = { center: center.clone(), age: 0.0, life: ATTR_LIFETIME };
     attractors.push(a);
 
-    // one-shot snap of nearby particles into spherical shell
-    const dir  = new THREE.Vector3();
-    const tang = new THREE.Vector3();
+    const R = SHELL_RADIUS;
+    const r = SHELL_RADIUS * TORUS_MINOR_RATIO;
+
+    const rel       = new THREE.Vector3();
+    const targetPos = new THREE.Vector3();
+    const radialDir = new THREE.Vector3();
+    const radial2D  = new THREE.Vector2();
+    const tangMajor = new THREE.Vector3();
 
     for (const p of particles) {
-      dir.copy(p.position).sub(center);
-      let distSq = dir.lengthSq();
-      if (distSq > ATTR_RANGE_SQ) continue;
+      rel.copy(p.position).sub(center);
+      if (rel.lengthSq() > ATTR_RANGE_SQ) continue;
 
-      let dist = Math.sqrt(distSq);
-      if (dist < 1e-3) {
-        dir.set(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5);
-        dir.normalize();
-        dist = 1.0;
-      } else {
-        dir.multiplyScalar(1.0 / dist); // r_hat
-      }
+      // random torus parameters
+      const u = Math.random() * Math.PI * 2.0;
+      const v = Math.random() * Math.PI * 2.0;
 
-      const targetPos = center.clone().addScaledVector(dir, SHELL_RADIUS);
+      const cosu = Math.cos(u), sinu = Math.sin(u);
+      const cosv = Math.cos(v), sinv = Math.sin(v);
+
+      const ringDir = radialDir
+        .copy(TORUS_U).multiplyScalar(cosu)
+        .addScaledVector(TORUS_V, sinu) // direction in torus plane
+        .normalize();
+
+      const majorCenter = center.clone().addScaledVector(ringDir, R + r * cosv);
+      targetPos.copy(majorCenter).addScaledVector(TORUS_AXIS, r * sinv);
+
       p.position.lerp(targetPos, SNAP_POS_FACTOR);
 
-      const v = p.velocity;
-      const vRad = v.dot(dir);
-      v.addScaledVector(dir, -vRad);   // kill radial
-
-      makePerpendicularUnit(dir, tang);
-      v.addScaledVector(tang, SNAP_SWIRL); // swirl around shell
+      // swirl velocity along major ring
+      const vParticle = p.velocity;
+      tangMajor.crossVectors(TORUS_AXIS, ringDir).normalize();
+      vParticle.addScaledVector(tangMajor, SNAP_SWIRL);
     }
   }
 
@@ -437,16 +449,17 @@
     createAttractor(center);
   });
 
+  // Continuous attraction toward torus surface (closest point approx)
   function applyAttractors(dt) {
     if (!attractors.length) return;
 
-    const dir   = new THREE.Vector3();
-    const tang  = new THREE.Vector3();
-    const tempV = new THREE.Vector3();
+    const R = SHELL_RADIUS;
+    const r = SHELL_RADIUS * TORUS_MINOR_RATIO;
 
-    const springStep = SPRING_K * dt;
-    const dampStep   = RADIAL_DAMP * dt;
-    const tangStep   = TANGENTIAL_FORCE * dt;
+    const rel         = new THREE.Vector3();
+    const radialDir3D = new THREE.Vector3();
+    const tangMajor   = new THREE.Vector3();
+    const normalWorld = new THREE.Vector3();
 
     for (const p of particles) {
       const v = p.velocity;
@@ -454,29 +467,56 @@
       for (const a of attractors) {
         if (a.age > a.life) continue;
 
-        dir.copy(p.position).sub(a.center);
-        const distSq = dir.lengthSq();
-        if (distSq > ATTR_RANGE_SQ || distSq < 1e-6) continue;
+        rel.copy(p.position).sub(a.center);
+        if (rel.lengthSq() > ATTR_RANGE_SQ) continue;
 
-        const dist = Math.sqrt(distSq);
-        dir.multiplyScalar(1.0 / dist); // r_hat
+        // coordinates in torus basis
+        const x = rel.dot(TORUS_U);
+        const y = rel.dot(TORUS_AXIS); // along axis
+        const z = rel.dot(TORUS_V);
 
-        const radialError = dist - SHELL_RADIUS;
-        const radialAccel = -springStep * radialError;
-        v.addScaledVector(dir, radialAccel);
+        const radialLenXZ = Math.sqrt(x*x + z*z) || 1e-6;
+        const dirX = x / radialLenXZ;
+        const dirZ = z / radialLenXZ;
 
-        const vRad = v.dot(dir);
-        v.addScaledVector(dir, -vRad * dampStep);
+        // center of the tube circle at this azimuth
+        const cx = R * dirX;
+        const cz = R * dirZ;
+        const cy = 0;
 
-        tempV.copy(v);
-        const vRad2 = tempV.dot(dir);
-        tang.copy(tempV).addScaledVector(dir, -vRad2);
-        if (tang.lengthSq() < 1e-6) {
-          makePerpendicularUnit(dir, tang);
-        } else {
-          tang.normalize();
-        }
-        v.addScaledVector(tang, tangStep);
+        // vector from tube center to point
+        const dx = x - cx;
+        const dy = y - cy;
+        const dz = z - cz;
+        const distTube = Math.sqrt(dx*dx + dy*dy + dz*dz) || 1e-6;
+
+        const nx = dx / distTube;
+        const ny = dy / distTube;
+        const nz = dz / distTube;
+
+        const radialError = distTube - r;
+
+        // normal in world coords
+        normalWorld
+          .copy(TORUS_U).multiplyScalar(nx)
+          .addScaledVector(TORUS_AXIS, ny)
+          .addScaledVector(TORUS_V, nz)
+          .normalize();
+
+        const accel = -TORUS_K_SURFACE * radialError;
+        v.addScaledVector(normalWorld, accel * dt);
+
+        const vNorm = v.dot(normalWorld);
+        v.addScaledVector(normalWorld, -vNorm * 0.6 * dt); // damping
+
+        // swirl along major ring direction
+        radialDir3D
+          .copy(TORUS_U).multiplyScalar(dirX)
+          .addScaledVector(TORUS_V, dirZ)
+          .normalize();
+
+        tangMajor.crossVectors(TORUS_AXIS, radialDir3D).normalize();
+        v.addScaledVector(tangMajor, TANGENTIAL_FORCE * dt);
       }
     }
   }
@@ -520,7 +560,7 @@
       if (newLenSq > 1e-10) {
         const newLen = Math.sqrt(newLenSq);
         const k = speed / newLen;
-        v.multiplyScalar(k); // keep speed, just bend direction
+        v.multiplyScalar(k);
       }
     }
   }
@@ -589,7 +629,6 @@
               q.velocity.z += vqz * invVq * impulse;
             }
 
-            // temporary speed phase & white flash
             p.boostTimer = 0.35;
             p.slowTimer  = 0.70;
             q.boostTimer = 0.35;
@@ -612,10 +651,8 @@
       const pos = p.position;
       const v   = p.velocity;
 
-      // flash decay
       flash[i] *= Math.exp(-FLASH_DECAY * dt);
 
-      // boost/slow phase from repulsion bumps
       let moveFactor = 1.0;
       if (p.boostTimer > 0) {
         moveFactor = 1.6;
