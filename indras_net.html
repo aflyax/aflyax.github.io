@@ -410,7 +410,18 @@
             for (let d = 0; d < dendCount; d++) {
               const dir = normalize(randomPointInSphere(1.0));
               const len = 35 + Math.random() * 45;
-              dendrites.push({ dx: dir.x, dy: dir.y, dz: dir.z, len: len });
+              const phase = Math.random() * Math.PI * 2;
+              const freq = 0.4 + Math.random() * 0.6;  // slow sway
+              const amp = 0.08 + Math.random() * 0.12; // relative to len
+              dendrites.push({
+                dx: dir.x,
+                dy: dir.y,
+                dz: dir.z,
+                len: len,
+                phase: phase,
+                freq: freq,
+                amp: amp
+              });
             }
 
             neurons.push({
@@ -858,7 +869,8 @@
           ctx.stroke();
         }
 
-        // dendrites
+        // dendrites (now floppy, swaying and slightly curved)
+        const tSec = now * 0.001;
         for (const n of neurons) {
           if (!n.visible) continue;
 
@@ -872,25 +884,66 @@
           const sinX = Math.sin(angleX);
 
           for (const d of n.dendrites) {
-            const endWx = wx + d.dx * d.len;
-            const endWy = wy + d.dy * d.len;
-            const endWz = wz + d.dz * d.len;
+            const dirx = d.dx;
+            const diry = d.dy;
+            const dirz = d.dz;
 
-            const xz = endWx * cosY - endWz * sinY;
-            const zz = endWx * sinY + endWz * cosY;
-            const yz = endWy * cosX - zz * sinX;
-            const zz2 = endWy * sinX + zz * cosX;
-            const zCam = zz2 + cameraZ;
+            // base end point in world
+            const endWxBase = wx + dirx * d.len;
+            const endWyBase = wy + diry * d.len;
+            const endWzBase = wz + dirz * d.len;
+
+            // perpendicular axis for sway
+            let px = -dirz;
+            let py = 0;
+            let pz = dirx;
+            const plen = Math.hypot(px, py, pz);
+            if (plen < 1e-4) {
+              px = 0;
+              py = 1;
+              pz = 0;
+            } else {
+              px /= plen;
+              py /= plen;
+              pz /= plen;
+            }
+
+            const sway = Math.sin(tSec * d.freq + d.phase) * d.amp * d.len;
+
+            const midWx = wx + dirx * d.len * 0.55 + px * sway;
+            const midWy = wy + diry * d.len * 0.55 + py * sway;
+            const midWz = wz + dirz * d.len * 0.55 + pz * sway;
+
+            const endWx = endWxBase + px * sway * 0.3;
+            const endWy = endWyBase + py * sway * 0.3;
+            const endWz = endWzBase + pz * sway * 0.3;
+
+            // project mid point
+            let xz = midWx * cosY - midWz * sinY;
+            let zz = midWx * sinY + midWz * cosY;
+            let yz = midWy * cosX - zz * sinX;
+            let zz2 = midWy * sinX + zz * cosX;
+            let zCam = zz2 + cameraZ;
             if (zCam <= 60) continue;
+            let scale = perspective / zCam;
+            const mx = width * 0.5 + xz * scale;
+            const my = height * 0.5 + yz * scale;
 
-            const scale = perspective / zCam;
+            // project end point
+            xz = endWx * cosY - endWz * sinY;
+            zz = endWx * sinY + endWz * cosY;
+            yz = endWy * cosX - zz * sinX;
+            zz2 = endWy * sinX + zz * cosX;
+            zCam = zz2 + cameraZ;
+            if (zCam <= 60) continue;
+            scale = perspective / zCam;
             const ex = width * 0.5 + xz * scale;
             const ey = height * 0.5 + yz * scale;
 
             ctx.beginPath();
             ctx.moveTo(n.sx, n.sy);
-            ctx.lineTo(ex, ey);
-            ctx.lineWidth = 0.5;
+            ctx.quadraticCurveTo(mx, my, ex, ey);
+            ctx.lineWidth = 0.45;
             ctx.strokeStyle = "rgba(100,120,150,0.35)";
             ctx.stroke();
           }
