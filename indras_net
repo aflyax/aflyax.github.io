@@ -1,0 +1,1170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title></title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at top, #020617 0%, #020617 55%, #000000 100%);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+                   "Segoe UI", sans-serif;
+      color: #e5e7eb;
+    }
+
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      cursor: crosshair;
+    }
+
+    .vignette {
+      pointer-events: none;
+      position: fixed;
+      inset: 0;
+      box-shadow: inset 0 0 220px 80px rgba(0, 0, 0, 0.9);
+      mix-blend-mode: normal;
+    }
+
+    .controls-toggle {
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      z-index: 10;
+      font-size: 0.8rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: rgba(226, 232, 240, 0.7);
+      user-select: none;
+    }
+
+    .controls-toggle input {
+      vertical-align: middle;
+      margin-right: 6px;
+      accent-color: #38bdf8;
+    }
+
+    .controls-panel {
+      position: fixed;
+      bottom: 46px;
+      left: 16px;
+      z-index: 9;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: radial-gradient(circle at top left,
+                  rgba(15, 23, 42, 0.96),
+                  rgba(15, 23, 42, 0.9));
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      box-shadow:
+        0 18px 45px rgba(15, 23, 42, 0.9),
+        0 0 0 1px rgba(15, 23, 42, 0.8);
+      backdrop-filter: blur(12px);
+      min-width: 260px;
+      max-width: 320px;
+      display: none;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .control {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .control-label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: rgba(203, 213, 225, 0.86);
+    }
+
+    .control-label-row span.value {
+      font-variant-numeric: tabular-nums;
+      color: rgba(148, 163, 184, 0.9);
+    }
+
+    .control input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(30, 64, 175, 0.6);
+      outline: none;
+    }
+
+    .control input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: #e5f2ff;
+      border: 1px solid rgba(59, 130, 246, 0.7);
+      box-shadow:
+        0 0 8px rgba(59, 130, 246, 0.9),
+        0 0 0 3px rgba(15, 23, 42, 0.9);
+      cursor: pointer;
+    }
+
+    .control input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 999px;
+      background: #e5f2ff;
+      border: 1px solid rgba(59, 130, 246, 0.7);
+      box-shadow:
+        0 0 8px rgba(59, 130, 246, 0.9),
+        0 0 0 3px rgba(15, 23, 42, 0.9);
+      cursor: pointer;
+    }
+
+    .control input[type="range"]::-moz-range-track {
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(30, 64, 175, 0.6);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="indraCanvas"></canvas>
+
+  <div class="controls-toggle">
+    <label>
+      <input type="checkbox" id="controlsToggle" />
+      show controls
+    </label>
+  </div>
+
+  <div id="controlsPanel" class="controls-panel">
+    <div class="control-group">
+      <div class="control">
+        <div class="control-label-row">
+          <span>Spontaneous firing rate</span>
+          <span class="value" id="spontRateValue">0.02 HZ</span>
+        </div>
+        <!-- slider 0..1 mapped to 0..0.04 Hz, default 0.5 => 0.02 Hz -->
+        <input type="range" id="spontRateSlider" min="0" max="1" step="0.01" value="0.5" />
+      </div>
+
+      <div class="control">
+        <div class="control-label-row">
+          <span>Axon transmission prob</span>
+          <span class="value" id="axonProbValue">85%</span>
+        </div>
+        <input type="range" id="axonProbSlider" min="0" max="1" step="0.01" value="0.85" />
+      </div>
+
+      <div class="control">
+        <div class="control-label-row">
+          <span>Neuron inner speed</span>
+          <span class="value" id="ballSpeedValue">1.12x</span>
+        </div>
+        <input type="range" id="ballSpeedSlider" min="0" max="1.5" step="0.01" value="1.12" />
+      </div>
+
+      <div class="control">
+        <div class="control-label-row">
+          <span>Network rotation speed</span>
+          <span class="value" id="netSpeedValue">0.67x</span>
+        </div>
+        <input type="range" id="netSpeedSlider" min="0" max="1.5" step="0.01" value="0.67" />
+      </div>
+    </div>
+  </div>
+
+  <div class="vignette"></div>
+
+  <script>
+    (function () {
+      const canvas = document.getElementById("indraCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const controlsToggle = document.getElementById("controlsToggle");
+      const controlsPanel = document.getElementById("controlsPanel");
+      const spontRateSlider = document.getElementById("spontRateSlider");
+      const axonProbSlider = document.getElementById("axonProbSlider");
+      const ballSpeedSlider = document.getElementById("ballSpeedSlider");
+      const netSpeedSlider = document.getElementById("netSpeedSlider");
+
+      const spontRateValue = document.getElementById("spontRateValue");
+      const axonProbValue = document.getElementById("axonProbValue");
+      const ballSpeedValue = document.getElementById("ballSpeedValue");
+      const netSpeedValue = document.getElementById("netSpeedValue");
+
+      let neurons = [];
+      let springs = [];
+      let axonConnections = [];
+      let spikes = [];
+
+      // waves
+      let nextWaveId = 1;
+      const waveMeta = {};
+
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+
+      let angleX = 0.55;
+      let angleY = 0.0;
+
+      const cameraZ = 950;
+      const perspective = 900;
+
+      let lastUpdateTime = performance.now();
+
+      let isDragging = false;
+      let draggingNeuron = null;
+      let dragDepth = 0;
+
+      const params = {
+        spontSlider: 0.5,   // 0..1 -> 0..0.04 Hz
+        axonSlider: 0.85,
+        wobbleSpeed: 1.12,
+        networkSpeed: 0.67
+      };
+
+      const neuronCount = 72;
+      const clusterCount = 2;
+
+      function hslToRgb(h, s, l) {
+        h = h % 1;
+        let r, g, b;
+
+        if (s === 0) {
+          r = g = b = l;
+        } else {
+          const hue2rgb = function (p, q, t) {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1 / 6) return p + (q - p) * 6 * t;
+            if (t < 1 / 2) return q;
+            if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+            return p;
+          };
+
+          const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+          const p = 2 * l - q;
+          r = hue2rgb(p, q, h + 1 / 3);
+          g = hue2rgb(p, q, h);
+          b = hue2rgb(p, q, h - 1 / 3);
+        }
+
+        return {
+          r: Math.round(r * 255),
+          g: Math.round(g * 255),
+          b: Math.round(b * 255)
+        };
+      }
+
+      // wave palette: more pastel overall, and easier to go warm/hot
+      function createWaveMeta() {
+        const id = nextWaveId++;
+
+        // cool pastel (blue / blue-violet)
+        const coolHue = 0.55 + (Math.random() - 0.5) * 0.15; // around 200-240deg
+        const cool = hslToRgb(
+          coolHue,
+          0.40 + Math.random() * 0.15,
+          0.78 + Math.random() * 0.10
+        );
+
+        // warm pastel (peach / coral / pink)
+        const warmHue = 0.03 + (Math.random() - 0.5) * 0.12; // around 5-25deg
+        const warm = hslToRgb(
+          warmHue,
+          0.55 + Math.random() * 0.18,
+          0.80 + Math.random() * 0.08
+        );
+
+        // hot pastel (stronger red / magenta, still soft)
+        const hotHue = -0.02 + (Math.random() - 0.5) * 0.10; // near red, wrap via modulo
+        const hot = hslToRgb(
+          hotHue,
+          0.60 + Math.random() * 0.20,
+          0.84 + Math.random() * 0.06
+        );
+
+        waveMeta[id] = {
+          coolR: cool.r, coolG: cool.g, coolB: cool.b,
+          warmR: warm.r, warmG: warm.g, warmB: warm.b,
+          hotR: hot.r,  hotG: hot.g,   hotB: hot.b
+        };
+        return id;
+      }
+
+      // depth ~ number of hops from wave origin
+      // 0   => cool pastel
+      // 1-4 => blend from cool -> warm (at ~3-4 it's already quite warm)
+      // >4  => blend from warm -> hot pastel; 8+ is fully hot
+      function colorForWave(waveId, depth) {
+        const meta = waveMeta[waveId];
+        if (!meta) {
+          return { r: 220, g: 235, b: 255 };
+        }
+
+        const d = Math.max(0, depth || 0);
+
+        if (d <= 0) {
+          return { r: meta.coolR, g: meta.coolG, b: meta.coolB };
+        }
+
+        if (d <= 4) {
+          const t = d / 4; // 1-2 hops: mostly cool; 3-4 hops: already warm
+          const r = meta.coolR * (1 - t) + meta.warmR * t;
+          const g = meta.coolG * (1 - t) + meta.warmG * t;
+          const b = meta.coolB * (1 - t) + meta.warmB * t;
+          return { r, g, b };
+        }
+
+        // beyond 4 hops: go hotter
+        const t2 = Math.min(1, (d - 4) / 4); // 8+ hops fully hot
+        const r = meta.warmR * (1 - t2) + meta.hotR * t2;
+        const g = meta.warmG * (1 - t2) + meta.hotG * t2;
+        const b = meta.warmB * (1 - t2) + meta.hotB * t2;
+        return { r, g, b };
+      }
+
+      function resizeCanvas() {
+        const dpr = window.devicePixelRatio || 1;
+        width = window.innerWidth;
+        height = window.innerHeight;
+
+        canvas.width = width * dpr;
+        canvas.height = height * dpr;
+        canvas.style.width = "100vw";
+        canvas.style.height = "100vh";
+
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        initNetwork();
+      }
+
+      function randomPointInSphere(radius) {
+        const u = Math.random();
+        const v = Math.random();
+        const theta = 2 * Math.PI * u;
+        const phi = Math.acos(2 * v - 1);
+        const r = radius * Math.cbrt(Math.random());
+        const sinPhi = Math.sin(phi);
+        const x = r * sinPhi * Math.cos(theta);
+        const y = r * sinPhi * Math.sin(theta);
+        const z = r * Math.cos(phi);
+        return { x, y, z };
+      }
+
+      function normalize(vec) {
+        const len = Math.hypot(vec.x, vec.y, vec.z) || 1;
+        return { x: vec.x / len, y: vec.y / len, z: vec.z / len };
+      }
+
+      function initNetwork() {
+        neurons = [];
+        springs = [];
+        axonConnections = [];
+        spikes = [];
+        nextWaveId = 1;
+        for (const key in waveMeta) delete waveMeta[key];
+
+        const clusterRadius = Math.min(width, height) * 0.34;
+        const separation = clusterRadius * 1.6;
+
+        // one cluster centered, one clearly off to the right & slightly offset in depth
+        const centers = [
+          { x: 0, y: 0, z: 0 },                          // central cloud
+          { x: separation, y: 80, z: -120 }              // side cloud
+        ];
+
+        const perCluster = Math.floor(neuronCount / clusterCount);
+        let index = 0;
+
+        for (let c = 0; c < clusterCount; c++) {
+          const center = centers[c];
+          for (let k = 0; k < perCluster; k++) {
+            if (index >= neuronCount) break;
+
+            const pLocal = randomPointInSphere(clusterRadius * 0.6);
+            const p = {
+              x: center.x + pLocal.x,
+              y: center.y + pLocal.y,
+              z: center.z + pLocal.z
+            };
+            const orbitRadius = 40 + Math.random() * 40;
+
+            const dendrites = [];
+            const dendCount = 4 + Math.floor(Math.random() * 3);
+            for (let d = 0; d < dendCount; d++) {
+              const dir = normalize(randomPointInSphere(1.0));
+              const len = 35 + Math.random() * 45;
+              dendrites.push({ dx: dir.x, dy: dir.y, dz: dir.z, len: len });
+            }
+
+            neurons.push({
+              ax: p.x,
+              ay: p.y,
+              az: p.z,
+              x: 0,
+              y: 0,
+              z: 0,
+              vx: 0,
+              vy: 0,
+              vz: 0,
+              wx: 0,
+              wy: 0,
+              wz: 0,
+              sx: 0,
+              sy: 0,
+              depth: Infinity,
+              visible: true,
+              orbitRadius,
+              orbitFreq1: 0.18 + Math.random() * 0.3,
+              orbitFreq2: 0.14 + Math.random() * 0.25,
+              orbitFreq3: 0.22 + Math.random() * 0.35,
+              orbitPhase1: Math.random() * Math.PI * 2,
+              orbitPhase2: Math.random() * Math.PI * 2,
+              orbitPhase3: Math.random() * Math.PI * 2,
+              radiusBase: 2.5 + Math.random() * 1.6,
+              dendrites,
+              axonTargets: [],
+              exc: 0,
+              colorR: 220,
+              colorG: 230,
+              colorB: 255,
+              lastFireTime: -1e9,
+              index: index,
+              clusterId: c,
+              lastWaveId: 0,
+              waveDepth: 0
+            });
+
+            index++;
+          }
+        }
+
+        // neighbor springs (mostly within cluster)
+        for (let i = 0; i < neurons.length; i++) {
+          const a = neurons[i];
+          const distances = [];
+          for (let j = 0; j < neurons.length; j++) {
+            if (i === j) continue;
+            const b = neurons[j];
+            if (a.clusterId !== b.clusterId) continue; // keep clusters slightly separate
+            const dx = b.ax - a.ax;
+            const dy = b.ay - a.ay;
+            const dz = b.az - a.az;
+            const dist2 = dx * dx + dy * dy + dz * dz;
+            distances.push({ j, dist2 });
+          }
+          distances.sort((u, v) => u.dist2 - v.dist2);
+          const kNeighbors = 4;
+          for (let n = 0; n < kNeighbors && n < distances.length; n++) {
+            const j = distances[n].j;
+            if (j < i) continue;
+            const a2 = neurons[i];
+            const b2 = neurons[j];
+            const dx = b2.ax - a2.ax;
+            const dy = b2.ay - a2.ay;
+            const dz = b2.az - a2.az;
+            const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+            springs.push({ i, j, rest: dist });
+          }
+        }
+
+        // axon connections inside each cluster
+        for (let i = 0; i < neurons.length; i++) {
+          const a = neurons[i];
+          const distances = [];
+          for (let j = 0; j < neurons.length; j++) {
+            if (i === j) continue;
+            const b = neurons[j];
+            if (a.clusterId !== b.clusterId) continue;
+            const dx = b.ax - a.ax;
+            const dy = b.ay - a.ay;
+            const dz = b.az - a.az;
+            const dist2 = dx * dx + dy * dy + dz * dz;
+            distances.push({ j, dist2 });
+          }
+          distances.sort((u, v) => u.dist2 - v.dist2);
+
+          const outCount = 2 + Math.floor(Math.random() * 3);
+          const chosen = new Set();
+          let idx2 = 0;
+          while (chosen.size < outCount && idx2 < distances.length) {
+            const targetIndex = distances[idx2].j;
+            chosen.add(targetIndex);
+            idx2++;
+          }
+          a.axonTargets = Array.from(chosen);
+          for (const j of a.axonTargets) {
+            axonConnections.push({ from: i, to: j });
+          }
+        }
+
+        // sparse bridges between clusters: 2-3 each way
+        const clusterIndices = [[], []];
+        for (let i = 0; i < neurons.length; i++) {
+          clusterIndices[neurons[i].clusterId].push(i);
+        }
+
+        function addBridges(fromCluster, toCluster, count) {
+          const fromList = clusterIndices[fromCluster];
+          const toList = clusterIndices[toCluster];
+          if (!fromList.length || !toList.length) return;
+
+          for (let n = 0; n < count; n++) {
+            const fromIndex = fromList[Math.floor(Math.random() * fromList.length)];
+            const fromNeuron = neurons[fromIndex];
+
+            // find nearest few in other cluster
+            const dists = [];
+            for (const j of toList) {
+              const b = neurons[j];
+              const dx = b.ax - fromNeuron.ax;
+              const dy = b.ay - fromNeuron.ay;
+              const dz = b.az - fromNeuron.az;
+              const dist2 = dx * dx + dy * dy + dz * dz;
+              dists.push({ j, dist2 });
+            }
+            dists.sort((u, v) => u.dist2 - v.dist2);
+            if (!dists.length) continue;
+            const targetIndex = dists[Math.floor(Math.random() * Math.min(4, dists.length))].j;
+
+            fromNeuron.axonTargets.push(targetIndex);
+            axonConnections.push({ from: fromIndex, to: targetIndex });
+          }
+        }
+
+        addBridges(0, 1, 3);
+        addBridges(1, 0, 3);
+      }
+
+      function orbitOffset(neuron, tSec) {
+        const s = params.wobbleSpeed;
+        if (s <= 0.001) {
+          return { ox: 0, oy: 0, oz: 0 };
+        }
+        const w1 = neuron.orbitFreq1 * s;
+        const w2 = neuron.orbitFreq2 * s;
+        const w3 = neuron.orbitFreq3 * s;
+
+        const ox = Math.sin(neuron.orbitPhase1 + tSec * w1) * neuron.orbitRadius * 0.9;
+        const oy = Math.sin(neuron.orbitPhase2 + tSec * w2) * neuron.orbitRadius * 0.6;
+        const oz = Math.sin(neuron.orbitPhase3 + tSec * w3) * neuron.orbitRadius * 0.9;
+
+        return { ox, oy, oz };
+      }
+
+      function fireNeuronWave(neuron, waveId, depth) {
+        const now = performance.now();
+        const refractoryMs = 1200;
+        if (now - neuron.lastFireTime < refractoryMs) return;
+
+        const c = colorForWave(waveId, depth);
+        neuron.lastFireTime = now;
+        neuron.exc = 1.0;
+        neuron.colorR = c.r;
+        neuron.colorG = c.g;
+        neuron.colorB = c.b;
+        neuron.lastWaveId = waveId;
+        neuron.waveDepth = depth;
+
+        const baseDelay = 120;
+        const jitter = 80;
+
+        const transProbEff = params.axonSlider * 0.7;
+
+        for (const targetIndex of neuron.axonTargets) {
+          if (Math.random() < transProbEff) {
+            const arrival = now + baseDelay + Math.random() * jitter;
+            spikes.push({
+              from: neuron.index,
+              to: targetIndex,
+              start: now,
+              arrival: arrival,
+              used: false,
+              waveId: waveId,
+              depth: depth + 1
+            });
+          }
+        }
+      }
+
+      function startNewWaveAtNeuron(neuron) {
+        const waveId = createWaveMeta();
+        fireNeuronWave(neuron, waveId, 0);
+      }
+
+      function updatePhysics(time) {
+        const now = time;
+        let dt = (now - lastUpdateTime) * 0.001;
+        if (dt <= 0) dt = 0.016;
+        if (dt > 0.05) dt = 0.05;
+        lastUpdateTime = now;
+
+        const tSec = now * 0.001;
+
+        const springK = 0.0006;
+        const damping = 0.982;
+        const centerK = 0.00035;
+
+        for (const n of neurons) {
+          const o = orbitOffset(n, tSec);
+          n.wx = n.ax + n.x + o.ox;
+          n.wy = n.ay + n.y + o.oy;
+          n.wz = n.az + n.z + o.oz;
+          n.fx = 0;
+          n.fy = 0;
+          n.fz = 0;
+        }
+
+        for (const s of springs) {
+          const a = neurons[s.i];
+          const b = neurons[s.j];
+          const dx = b.wx - a.wx;
+          const dy = b.wy - a.wy;
+          const dz = b.wz - a.wz;
+          const dist = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+          const stretch = dist - s.rest;
+          const fMag = springK * stretch;
+          const fx = (dx / dist) * fMag;
+          const fy = (dy / dist) * fMag;
+          const fz = (dz / dist) * fMag;
+          a.fx += fx;
+          a.fy += fy;
+          a.fz += fz;
+          b.fx -= fx;
+          b.fy -= fy;
+          b.fz -= fz;
+        }
+
+        for (const n of neurons) {
+          if (n === draggingNeuron && isDragging) {
+            n.vx = 0;
+            n.vy = 0;
+            n.vz = 0;
+            continue;
+          }
+
+          n.fx += -centerK * n.wx;
+          n.fy += -centerK * n.wy * 0.5;
+          n.fz += -centerK * n.wz * 0.8;
+
+          n.vx += n.fx * dt;
+          n.vy += n.fy * dt;
+          n.vz += n.fz * dt;
+
+          n.vx *= damping;
+          n.vy *= damping;
+          n.vz *= damping;
+
+          n.x += n.vx * dt;
+          n.y += n.vy * dt;
+          n.z += n.vz * dt;
+        }
+
+        const minHz = 0.0;
+        const maxHz = 0.04; // 0.02 Hz at mid
+        const rateHz = minHz + params.spontSlider * (maxHz - minHz);
+        if (rateHz > 0) {
+          const pFrame = rateHz * dt;
+          for (const n of neurons) {
+            const refractoryMs = 1200;
+            if (now - n.lastFireTime < refractoryMs) continue;
+            if (Math.random() < pFrame) {
+              startNewWaveAtNeuron(n);
+            }
+          }
+        }
+
+        const decayBase = 0.25;
+        const tau = 0.7;
+        const factor = Math.pow(decayBase, dt / tau);
+        for (const n of neurons) {
+          n.exc *= factor;
+          if (n.exc < 0.001) n.exc = 0;
+        }
+
+        for (const sp of spikes) {
+          if (!sp.used && now >= sp.arrival) {
+            const target = neurons[sp.to];
+            fireNeuronWave(target, sp.waveId, sp.depth);
+            sp.used = true;
+          }
+        }
+
+        const tailMs = 220;
+        spikes = spikes.filter(sp => now <= sp.arrival + tailMs);
+      }
+
+      function projectNeurons(time) {
+        const t = time * 0.001;
+        const netSpeed = params.networkSpeed;
+
+        if (!isDragging) {
+          angleY = t * 0.10 * netSpeed;
+          angleX = 0.6 + Math.sin(t * 0.16 * netSpeed) * 0.18;
+        }
+
+        const cosY = Math.cos(angleY);
+        const sinY = Math.sin(angleY);
+        const cosX = Math.cos(angleX);
+        const sinX = Math.sin(angleX);
+
+        const nearPlane = cameraZ - 520;
+        const farPlane = cameraZ + 620;
+
+        for (const n of neurons) {
+          const wx = n.wx;
+          const wy = n.wy;
+          const wz = n.wz;
+
+          const xz = wx * cosY - wz * sinY;
+          const zz = wx * sinY + wz * cosY;
+
+          const yz = wy * cosX - zz * sinX;
+          const zz2 = wy * sinX + zz * cosX;
+
+          const zCam = zz2 + cameraZ;
+
+          if (zCam <= 60) {
+            n.visible = false;
+            n.depth = Infinity;
+            continue;
+          }
+
+          const scale = perspective / zCam;
+          const sx = width * 0.5 + xz * scale;
+          const sy = height * 0.5 + yz * scale;
+
+          n.sx = sx;
+          n.sy = sy;
+          n.depth = zCam;
+          n.visible = true;
+
+          const dNorm = Math.max(
+            0,
+            Math.min(1, 1 - (zCam - nearPlane) / (farPlane - nearPlane))
+          );
+          n.depthFactor = dNorm;
+          n.scale = scale;
+        }
+      }
+
+      function draw(time) {
+        ctx.clearRect(0, 0, width, height);
+
+        const gradientBg = ctx.createRadialGradient(
+          width * 0.5,
+          height * 0.3,
+          0,
+          width * 0.5,
+          height * 0.3,
+          Math.max(width, height) * 0.9
+        );
+        gradientBg.addColorStop(0, "rgba(15, 23, 42, 0.85)");
+        gradientBg.addColorStop(0.4, "rgba(15, 23, 42, 0.5)");
+        gradientBg.addColorStop(1, "rgba(15, 23, 42, 0)");
+        ctx.fillStyle = gradientBg;
+        ctx.fillRect(0, 0, width, height);
+
+        projectNeurons(time);
+
+        const now = time;
+
+        // axons (including bridges)
+        for (const conn of axonConnections) {
+          const a = neurons[conn.from];
+          const b = neurons[conn.to];
+          if (!a.visible && !b.visible) continue;
+
+          const ax = a.sx;
+          const ay = a.sy;
+          const bx = b.sx;
+          const by = b.sy;
+
+          const mx = (ax + bx) * 0.5;
+          const my = (ay + by) * 0.5 + 14;
+
+          let baseR = 110, baseG = 135, baseB = 170;
+          let alpha = 0.1;
+
+          let spikeIntensity = 0;
+          let spikeColor = null;
+
+          for (const sp of spikes) {
+            if (sp.from === conn.from && sp.to === conn.to) {
+              const dur = sp.arrival - sp.start;
+              const tail = 220;
+              const end = sp.arrival + tail;
+              if (now >= sp.start && now <= end) {
+                let u;
+                if (now <= sp.arrival) {
+                  u = (now - sp.start) / dur;
+                } else {
+                  u = 1 - (now - sp.arrival) / tail;
+                }
+                u = Math.max(0, Math.min(1, u));
+                const intensity = u;
+                if (intensity > spikeIntensity) {
+                  spikeIntensity = intensity;
+                  spikeColor = colorForWave(sp.waveId, sp.depth);
+                }
+              }
+            }
+          }
+
+          let r = baseR;
+          let g = baseG;
+          let bCol = baseB;
+
+          if (spikeIntensity > 0 && spikeColor) {
+            const mix = spikeIntensity;
+            r = baseR * (1 - mix) + spikeColor.r * mix;
+            g = baseG * (1 - mix) + spikeColor.g * mix;
+            bCol = baseB * (1 - mix) + spikeColor.b * mix;
+            alpha = 0.08 + 0.55 * spikeIntensity;
+          }
+
+          const thickness = 0.6 + 1.2 * spikeIntensity;
+
+          ctx.beginPath();
+          ctx.moveTo(ax, ay);
+          ctx.quadraticCurveTo(mx, my, bx, by);
+          ctx.lineWidth = thickness;
+          ctx.strokeStyle =
+            "rgba(" +
+            Math.round(r) +
+            "," +
+            Math.round(g) +
+            "," +
+            Math.round(bCol) +
+            "," +
+            alpha.toFixed(3) +
+            ")";
+          ctx.stroke();
+        }
+
+        // dendrites
+        for (const n of neurons) {
+          if (!n.visible) continue;
+
+          const wx = n.wx;
+          const wy = n.wy;
+          const wz = n.wz;
+
+          const cosY = Math.cos(angleY);
+          const sinY = Math.sin(angleY);
+          const cosX = Math.cos(angleX);
+          const sinX = Math.sin(angleX);
+
+          for (const d of n.dendrites) {
+            const endWx = wx + d.dx * d.len;
+            const endWy = wy + d.dy * d.len;
+            const endWz = wz + d.dz * d.len;
+
+            const xz = endWx * cosY - endWz * sinY;
+            const zz = endWx * sinY + endWz * cosY;
+            const yz = endWy * cosX - zz * sinX;
+            const zz2 = endWy * sinX + zz * cosX;
+            const zCam = zz2 + cameraZ;
+            if (zCam <= 60) continue;
+
+            const scale = perspective / zCam;
+            const ex = width * 0.5 + xz * scale;
+            const ey = height * 0.5 + yz * scale;
+
+            ctx.beginPath();
+            ctx.moveTo(n.sx, n.sy);
+            ctx.lineTo(ex, ey);
+            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = "rgba(100,120,150,0.35)";
+            ctx.stroke();
+          }
+        }
+
+        // soma
+        const sorted = neurons.slice().sort((a, b) => a.depth - b.depth);
+        for (const n of sorted) {
+          if (!n.visible) continue;
+
+          const depthFactor = n.depthFactor || 0;
+          const exc = n.exc || 0;
+
+          const rRadius = n.radiusBase * (0.9 + depthFactor * 1.3);
+
+          if (exc <= 0.01) {
+            ctx.beginPath();
+            ctx.arc(n.sx, n.sy, rRadius * 0.9, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(148, 163, 184, 0.35)";
+            ctx.fill();
+          } else {
+            const mix = exc;
+            const haloRadius = rRadius * (2.2 + 2.5 * mix);
+
+            const halo = ctx.createRadialGradient(
+              n.sx,
+              n.sy,
+              0,
+              n.sx,
+              n.sy,
+              haloRadius
+            );
+            const haloAlpha = 0.08 + 0.8 * mix;
+            halo.addColorStop(
+              0,
+              "rgba(" +
+                Math.round(n.colorR) +
+                "," +
+                Math.round(n.colorG) +
+                "," +
+                Math.round(n.colorB) +
+                "," +
+                haloAlpha.toFixed(3) +
+                ")"
+            );
+            halo.addColorStop(
+              0.6,
+              "rgba(" +
+                Math.round(n.colorR) +
+                "," +
+                Math.round(n.colorG) +
+                "," +
+                Math.round(n.colorB) +
+                "," +
+                (haloAlpha * 0.5).toFixed(3) +
+                ")"
+            );
+            halo.addColorStop(1, "rgba(15, 23, 42, 0)");
+            ctx.fillStyle = halo;
+            ctx.beginPath();
+            ctx.arc(n.sx, n.sy, haloRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            const soma = ctx.createRadialGradient(
+              n.sx - rRadius * 0.3,
+              n.sy - rRadius * 0.4,
+              rRadius * 0.1,
+              n.sx,
+              n.sy,
+              rRadius
+            );
+            const coreR = 245;
+            const coreG = 249;
+            const coreB = 255;
+
+            const ringR = n.colorR;
+            const ringG = n.colorG;
+            const ringB = n.colorB;
+
+            soma.addColorStop(
+              0,
+              "rgba(" +
+                coreR +
+                "," +
+                coreG +
+                "," +
+                coreB +
+                "," +
+                (0.3 + 0.6 * mix).toFixed(3) +
+                ")"
+            );
+            soma.addColorStop(
+              0.4,
+              "rgba(" +
+                ringR +
+                "," +
+                ringG +
+                "," +
+                ringB +
+                "," +
+                (0.4 + 0.7 * mix).toFixed(3) +
+                ")"
+            );
+            soma.addColorStop(
+              1,
+              "rgba(148, 163, 184," + (0.08 + 0.25 * mix).toFixed(3) + ")"
+            );
+
+            ctx.fillStyle = soma;
+            ctx.beginPath();
+            ctx.arc(n.sx, n.sy, rRadius, 0, Math.PI * 2);
+            ctx.fill();
+
+            const highlightR = rRadius * 0.58;
+            const highlightAlpha = 0.2 + 0.7 * mix;
+            ctx.beginPath();
+            ctx.arc(
+              n.sx - rRadius * 0.32,
+              n.sy - rRadius * 0.38,
+              highlightR,
+              0,
+              Math.PI * 2
+            );
+            ctx.fillStyle =
+              "rgba(255, 255, 255," + highlightAlpha.toFixed(3) + ")";
+            ctx.fill();
+          }
+        }
+      }
+
+      function screenToWorld(mx, my, zCam) {
+        const scale = perspective / zCam;
+        const cx = (mx - width * 0.5) / scale;
+        const cy = (my - height * 0.5) / scale;
+        const cz = zCam - cameraZ;
+
+        const cosX = Math.cos(angleX);
+        const sinX = Math.sin(angleX);
+        const cosY = Math.cos(angleY);
+        const sinY = Math.sin(angleY);
+
+        const x1 = cx;
+        const y1 = cy * cosX + cz * sinX;
+        const z1 = -cy * sinX + cz * cosX;
+
+        const wx = x1 * cosY + z1 * sinY;
+        const wz = -x1 * sinY + z1 * cosY;
+        const wy = y1;
+
+        return { x: wx, y: wy, z: wz };
+      }
+
+      function findKNearestNeurons(mx, my, k) {
+        const arr = [];
+        for (let i = 0; i < neurons.length; i++) {
+          const n = neurons[i];
+          if (!n.visible) continue;
+          const dx = n.sx - mx;
+          const dy = n.sy - my;
+          const d2 = dx * dx + dy * dy;
+          arr.push({ n, d2 });
+        }
+        arr.sort((a, b) => a.d2 - b.d2);
+        return arr.slice(0, k).map(x => x.n);
+      }
+
+      function handlePointerDown(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        const nearest = findKNearestNeurons(x, y, 1)[0];
+        if (!nearest) {
+          isDragging = false;
+          draggingNeuron = null;
+          return;
+        }
+
+        isDragging = true;
+        draggingNeuron = nearest;
+        dragDepth = nearest.depth;
+      }
+
+      function handlePointerMove(event) {
+        if (!isDragging || !draggingNeuron) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        const world = screenToWorld(x, y, dragDepth);
+
+        const now = performance.now() * 0.001;
+        const o = orbitOffset(draggingNeuron, now);
+
+        draggingNeuron.x = world.x - draggingNeuron.ax - o.ox;
+        draggingNeuron.y = world.y - draggingNeuron.ay - o.oy;
+        draggingNeuron.z = world.z - draggingNeuron.az - o.oz;
+
+        draggingNeuron.vx = 0;
+        draggingNeuron.vy = 0;
+        draggingNeuron.vz = 0;
+      }
+
+      function triggerClickFires(event) {
+        if (!event) return;
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+
+        const nearestThree = findKNearestNeurons(x, y, 3);
+        for (const n of nearestThree) {
+          if (n) {
+            startNewWaveAtNeuron(n);
+          }
+        }
+      }
+
+      function handlePointerUp(event) {
+        triggerClickFires(event);
+        isDragging = false;
+        draggingNeuron = null;
+      }
+
+      function loop(time) {
+        updatePhysics(time);
+        draw(time);
+        requestAnimationFrame(loop);
+      }
+
+      // Controls
+      controlsToggle.addEventListener("change", () => {
+        controlsPanel.style.display = controlsToggle.checked ? "block" : "none";
+      });
+
+      spontRateSlider.addEventListener("input", () => {
+        params.spontSlider = parseFloat(spontRateSlider.value);
+        const minHz = 0.0;
+        const maxHz = 0.04;
+        const hz = minHz + params.spontSlider * (maxHz - minHz);
+        spontRateValue.textContent = hz.toFixed(2) + " HZ";
+      });
+
+      axonProbSlider.addEventListener("input", () => {
+        params.axonSlider = parseFloat(axonProbSlider.value);
+        const pct = Math.round(params.axonSlider * 100);
+        axonProbValue.textContent = pct + "%";
+      });
+
+      ballSpeedSlider.addEventListener("input", () => {
+        params.wobbleSpeed = parseFloat(ballSpeedSlider.value);
+        ballSpeedValue.textContent = params.wobbleSpeed.toFixed(2) + "x";
+      });
+
+      netSpeedSlider.addEventListener("input", () => {
+        params.networkSpeed = parseFloat(netSpeedSlider.value);
+        netSpeedValue.textContent = params.networkSpeed.toFixed(2) + "x";
+      });
+
+      // initialize labels
+      spontRateSlider.dispatchEvent(new Event("input"));
+      axonProbSlider.dispatchEvent(new Event("input"));
+      ballSpeedSlider.dispatchEvent(new Event("input"));
+      netSpeedSlider.dispatchEvent(new Event("input"));
+
+      window.addEventListener("resize", resizeCanvas);
+      canvas.addEventListener("mousedown", handlePointerDown);
+      window.addEventListener("mousemove", handlePointerMove);
+      window.addEventListener("mouseup", handlePointerUp);
+      window.addEventListener("mouseleave", handlePointerUp);
+
+      resizeCanvas();
+      requestAnimationFrame(loop);
+    })();
+  </script>
+</body>
+</html>
