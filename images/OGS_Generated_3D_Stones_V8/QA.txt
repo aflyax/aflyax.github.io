@@ -1,0 +1,1 @@
+File counts and transparency validation passed. 540 white RGBA 512x512, 150 black RGBA 768x768. Unique pixel arrays: white 540, black 150. Five independently generated reference designs per color; remaining images are derived variations, not independent AI generations.
