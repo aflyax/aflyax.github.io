@@ -1,0 +1,15 @@
+Assuming you upload the folder to the same web location, your OGS stone URLs will be:
+
+White stones base pattern:
+https://YOUR-DOMAIN/PATH/OGS_Combined_WhiteV6_BlackHiRes_512/white/white_001.png
+...
+https://YOUR-DOMAIN/PATH/OGS_Combined_WhiteV6_BlackHiRes_512/white/white_540.png
+
+Black stones base pattern:
+https://YOUR-DOMAIN/PATH/OGS_Combined_WhiteV6_BlackHiRes_512/black/black_001.png
+...
+https://YOUR-DOMAIN/PATH/OGS_Combined_WhiteV6_BlackHiRes_512/black/black_150.png
+
+If you instead rename the uploaded folder to ogs-stones, then use:
+https://YOUR-DOMAIN/PATH/ogs-stones/white/white_001.png
+https://YOUR-DOMAIN/PATH/ogs-stones/black/black_001.png
